@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
+import { SHAPES, shapeLabel } from './shapes';
 import ModelView from './ModelView';
 import { loadSettings, saveSettings, type Settings, type Axis, type Grid } from './settings';
 import { useSession } from './useSession';
@@ -37,11 +38,20 @@ export default function App() {
     <header><h1>HakoDraw</h1><button className="icon-button" aria-label={dark ? 'ライトモードに切り替える' : 'ダークモードに切り替える'}
       title={dark ? 'ライトモードに切り替える' : 'ダークモードに切り替える'} onClick={() => update({ theme: dark ? 'light' : 'dark' })}>{dark ? <Moon /> : <Sun />}</button></header>
     <div className="workspace">
-      <ModelView axis={setup ? settings.axis : session.exercise.axis} angle={setup ? 0 : session.angle} phase={session.phase}
+      <ModelView opacity={settings.opacity} brightness={settings.brightness} elevation={settings.elevation} shape={settings.shape} axis={setup ? settings.axis : session.exercise.axis} angle={setup ? 0 : session.angle} phase={session.phase}
         showAxes={setup || settings.localAxes} dark={dark} grid={settings.grid} completedAt={session.completedAt}
         reducedMotion={reducedMotion} axisPulseAt={pulseAt} onReady={onReady} />
       <div className="controls">
-        {setup ? <section aria-labelledby="setup-title"><h2 id="setup-title">練習をはじめる</h2><p className="muted">正方形の面 · 正面からスタート</p>
+        {setup ? <section aria-labelledby="setup-title"><h2 id="setup-title">練習をはじめる</h2><p className="muted">{shapeLabel(settings.shape)} · 初期姿勢からスタート</p>
+          <fieldset className="shape-choice"><legend>練習する形</legend><div className="shape-options">
+            {SHAPES.map(shape => <label key={shape.id}><input type="radio" name="shape" value={shape.id} checked={settings.shape === shape.id}
+              onChange={() => update({ shape: shape.id })} /><span><svg viewBox="0 0 40 40" aria-hidden="true">
+              {shape.id === 'figure' ? <path d="M16 3H24V11H16Z M12 16 25 13 29 25 16 28Z M15 31 25 29 27 37 17 39Z" /> : shape.id === 'circle' ? <circle cx="20" cy="20" r="13" /> : shape.id === 'square' ? <rect x="7" y="7" width="26" height="26" /> : <path d={shape.id === 'cube' ? 'M6 12 20 5 34 12 34 28 20 35 6 28Z M6 12 20 19 34 12 M20 19V35' : 'M10 9 22 4 32 9 32 31 20 36 10 31Z M10 9 20 14 32 9 M20 14V36'} />}
+              </svg><b>{shape.label}</b><small aria-hidden="true">✓</small></span></label>)}
+          </div><p className="muted shape-hint">{SHAPES.find(shape => shape.id === settings.shape)!.hint}</p></fieldset>
+          <label className="range-setting camera-setting"><span>視点の高さ<output>{settings.elevation === 0 ? '水平 0°' : settings.elevation > 0 ? '見下ろし ' + settings.elevation + '°' : '見上げ ' + -settings.elevation + '°'}</output></span>
+            <input aria-label="視点の高さ" type="range" min="-60" max="60" step="1" value={settings.elevation} onChange={e => update({ elevation: Number(e.target.value) })} />
+            <span className="range-ends"><small>見上げ</small><small>水平</small><small>見下ろし</small></span></label>
           <fieldset className="axes-choice"><legend>回転軸</legend><div className="axis-options">
             {(['X', 'Y', 'Z'] as Axis[]).map((axis, i) => <label key={axis}><input type="radio" name="axis" value={axis} checked={settings.axis === axis}
               onChange={() => { update({ axis });setPulseAt(performance.now()); }} /><span><b className={`axis-${axis}`}>{axis}</b>{['左右', '上下', '奥行き'][i]}<small aria-hidden="true">✓</small></span></label>)}
@@ -73,6 +83,9 @@ export default function App() {
           <label className="setting-row">模写用グリッド<select value={settings.grid} onChange={e => update({ grid: Number(e.target.value) as Grid })}>
             <option value={0}>非表示</option><option value={2}>2 × 2</option><option value={3}>3 × 3</option><option value={4}>4 × 4</option></select></label>
           <label className="setting-row">練習中のローカル軸<span className="switch"><input type="checkbox" role="switch" checked={settings.localAxes} onChange={e => update({ localAxes: e.target.checked })} /><span aria-hidden="true" /></span></label>
+          <label className="range-setting"><span>面の不透明度<output>{settings.opacity}%</output></span><input aria-label="面の不透明度" type="range" min="0" max="100" value={settings.opacity} onChange={e => update({ opacity: Number(e.target.value) })} /></label>
+          <label className="range-setting"><span>面の明度<output>{settings.brightness}%</output></span><input aria-label="面の明度" type="range" min="0" max="100" value={settings.brightness} onChange={e => update({ brightness: Number(e.target.value) })} /></label>
+          <p className="muted">奥の辺は薄く表示します。面を0%にすると辺だけになります。</p>
         </div></details>}
         {warning && <p className="storage-warning" role="status">{warning}</p>}
       </div>
