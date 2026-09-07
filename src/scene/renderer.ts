@@ -1,10 +1,11 @@
 import * as THREE from 'three';
-import { createSquare } from './target';
+import { createTarget } from './target';
+import { shapeLabel, type Shape } from '../shapes';
 import type { Axis } from '../settings';
 import type { Phase } from '../session';
 
 export interface ViewState {
-  axis: Axis; angle: number; phase: Phase; showAxes: boolean; dark: boolean;
+  opacity: number; brightness: number; elevation: number; shape: Shape; axis: Axis; angle: number; phase: Phase; showAxes: boolean; dark: boolean;
   completedAt: number; reducedMotion: boolean; axisPulseAt: number;
 }
 export interface LabelPosition { axis: Axis; x: number; y: number; depth: number }
@@ -23,7 +24,8 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
   camera.setFocalLength(50);
   camera.position.set(0, 0, 5.5);
   camera.lookAt(0, 0, 0);
-  const target = createSquare();
+  let currentShape: Shape = 'square';
+  let target = createTarget(currentShape);
   const pivot = new THREE.Group();
   pivot.add(target.root);scene.add(pivot);
   const axes = new THREE.Group();pivot.add(axes);
@@ -45,12 +47,21 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
   const spin = new THREE.Quaternion();
   return {
     render(state: ViewState, now: number) {
+      const elevation = THREE.MathUtils.degToRad(state.elevation);
+      camera.position.set(0, 5.5 * Math.sin(elevation), 5.5 * Math.cos(elevation));camera.lookAt(0, 0, 0);camera.updateMatrixWorld();
+      if (currentShape !== state.shape) {
+        pivot.remove(target.root);target.dispose();
+        currentShape = state.shape;target = createTarget(currentShape);pivot.add(target.root);
+        lastDark = undefined;
+      }
+      renderer.domElement.setAttribute('aria-label', 'Three.jsで描画した' + shapeLabel(state.shape));
       if (lastDark !== state.dark) {
         lastDark = state.dark;
-        renderer.setClearColor(state.dark ? '#303532' : '#fffdf9');target.setTheme(state.dark);
+        renderer.setClearColor(state.dark ? '#303532' : '#fffdf9');
         const colors = state.dark ? ['#ea9098', '#69a881', '#7b9fe0'] : ['#a63d42', '#287044', '#315db0'];
         arrows.forEach(({ arrow }, i) => arrow.setColor(new THREE.Color(colors[i])));
       }
+      target.setAppearance(state.dark, state.opacity, state.brightness);
       initial.setFromAxisAngle(directions[state.axis], state.angle);
       pivot.quaternion.copy(initial);pivot.position.set(0, 0, 0);
       let celebration = 0;
@@ -71,7 +82,7 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
       pivot.updateMatrixWorld(true);
       labels(arrows.map(({ axis }) => {
         const endpoint = directions[axis].clone().multiplyScalar(.88).applyMatrix4(pivot.matrixWorld);
-        const depth = endpoint.z;endpoint.project(camera);
+        const depth = endpoint.clone().sub(pivot.position).dot(camera.position.clone().normalize());endpoint.project(camera);
         return { axis, x: (endpoint.x + 1) * 50, y: (1 - endpoint.y) * 50, depth };
       }));
       renderer.render(scene, camera);
