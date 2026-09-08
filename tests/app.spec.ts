@@ -106,22 +106,17 @@ test('setup is centered and only essential controls are initially visible', asyn
   await page.locator('.view-settings summary').click();await expect(page.getByRole('slider', { name: '焦点距離', exact: true })).toBeVisible();
 });
 
-test('direct mouse controls persist and rotation is locked during practice', async ({ page }) => {
- const view=page.getByTestId('model-view');const box=(await view.boundingBox())!;
- const drag=async(button:'left'|'right')=>{await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);await page.mouse.down({button});await page.mouse.move(box.x+box.width*.65,box.y+box.height*.6,{steps:8});await page.mouse.up({button});};
- await drag('left');expect(await view.getAttribute('data-rotation-y')).not.toBe('0');
- await drag('right');expect(await view.getAttribute('data-position-x')).not.toBe('0');
- await page.mouse.wheel(0,-100);await expect(view).not.toHaveAttribute('data-scale','100');
- const rotation=await view.getAttribute('data-rotation-y');await page.reload();await expect(view).toHaveAttribute('data-rotation-y',rotation!);
- await page.getByRole('button',{name:'練習スタート'}).click();await page.getByRole('button',{name:'一時停止',exact:true}).click();
- await view.scrollIntoViewIfNeeded();const r=(await view.boundingBox())!;await page.mouse.move(r.x+80,r.y+80);await page.mouse.down();await page.mouse.move(r.x+150,r.y+120,{steps:5});await page.mouse.up();await expect(view).toHaveAttribute('data-rotation-y',rotation!);
- const time=await page.locator('.seconds').textContent();await page.getByRole('button',{name:'縮小',exact:true}).click();await expect(page.locator('.seconds')).toHaveText(time!);await expect(view).toHaveAttribute('data-phase','paused');
- await page.getByRole('button',{name:'位置と大きさをリセット'}).click();await expect(view).toHaveAttribute('data-scale','100');await expect(view).toHaveAttribute('data-position-x','0');
-});
-test('touch drag rotates and two-finger gesture pans and scales', async ({page,context})=>{
- const cdp=await context.newCDPSession(page);const view=page.getByTestId('model-view');const b=(await view.boundingBox())!;const x=b.x+b.width/2,y=b.y+b.height/2;
- const send=async(type:'touchStart'|'touchMove'|'touchEnd',touchPoints:{x:number;y:number;id:number}[])=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints});
- await send('touchStart',[{x,y,id:1}]);await send('touchMove',[{x:x+40,y:y+20,id:1}]);await send('touchEnd',[]);await expect(view).not.toHaveAttribute('data-rotation-y','0');
- const rot=await view.getAttribute('data-rotation-y');await send('touchStart',[{x:x-40,y,id:1},{x:x+40,y,id:2}]);await send('touchMove',[{x:x-30,y:y+20,id:1},{x:x+70,y:y+20,id:2}]);await send('touchEnd',[]);
- await expect(view).toHaveAttribute('data-rotation-y',rot!);await expect(view).not.toHaveAttribute('data-scale','100');await expect(view).not.toHaveAttribute('data-position-y','0');
+
+test('step controls are precise, persist and lock rotation during practice', async ({page})=>{
+ const view=page.getByTestId('model-view');
+ await page.getByRole('button',{name:'回転を増やす',exact:true}).click();await expect(view).toHaveAttribute('data-rotation-x','15');
+ await page.getByLabel('細かく', {exact:false}).check();await page.getByRole('button',{name:'回転を増やす',exact:true}).click();await expect(view).toHaveAttribute('data-rotation-x','16');
+ await page.getByRole('button',{name:'Y軸',exact:true}).click();await page.getByRole('button',{name:'回転を減らす',exact:true}).click();await expect(view).toHaveAttribute('data-rotation-y','-1');
+ await page.getByRole('button',{name:'移動',exact:true}).click();await page.getByRole('button',{name:'右へ移動',exact:true}).click();await expect(view).toHaveAttribute('data-position-x','1');
+ await page.getByRole('button',{name:'大きさ',exact:true}).click();await page.getByRole('button',{name:'拡大',exact:true}).click();await expect(view).toHaveAttribute('data-scale','101');
+ await page.reload();await expect(view).toHaveAttribute('data-scale','101');await expect(view).toHaveAttribute('data-rotation-x','16');
+ const box=(await view.boundingBox())!;await page.mouse.move(box.x+50,box.y+50);await page.mouse.down();await page.mouse.move(box.x+100,box.y+100);await page.mouse.up();await expect(view).toHaveAttribute('data-rotation-x','16');
+ await page.getByRole('button',{name:'練習スタート'}).click();await page.getByRole('button',{name:'一時停止',exact:true}).click();await expect(page.getByRole('button',{name:'回転',exact:true})).toBeDisabled();
+ const time=await page.locator('.seconds').textContent();await page.getByRole('button',{name:'右へ移動',exact:true}).click();await expect(view).toHaveAttribute('data-position-x','6');await expect(page.locator('.seconds')).toHaveText(time!);await expect(view).toHaveAttribute('data-phase','paused');
+ await page.getByRole('button',{name:'中央',exact:true}).click();await expect(view).toHaveAttribute('data-position-x','0');
 });
