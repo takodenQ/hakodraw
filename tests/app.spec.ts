@@ -27,6 +27,7 @@ test('Three.js renders the square and session flow, axes, storage, completion wo
   await expect(view).toHaveAttribute('data-phase', 'paused');
   await expect(page.locator('.seconds')).toHaveText('残り2秒');
   await expect(view).toHaveAttribute('data-angle', Math.PI.toFixed(4));
+  await page.locator('.view-settings summary').click();
   await page.getByRole('switch').check();
   await expect(page.getByTestId('local-axes')).toBeVisible();
   await grid.selectOption('2');
@@ -70,7 +71,7 @@ for (const [width, height] of [[320, 640], [390, 844], [844, 390], [1280, 900]])
     await page.getByRole('button', { name: '練習スタート' }).click();
     await page.getByRole('button', { name: '一時停止', exact: true }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    const end = await page.getByRole('button', { name: '練習を終了', exact: true }).boundingBox();expect(end!.y + end!.height).toBeLessThanOrEqual(height);
+    const controls = await page.locator('.controls').boundingBox();const currentView = await page.getByTestId('model-view').boundingBox();expect(controls!.y).toBeGreaterThanOrEqual(currentView!.y + currentView!.height);expect(Math.abs(currentView!.x + currentView!.width / 2 - width / 2)).toBeLessThan(2);
     await page.screenshot({ path: `test-results/viewport-${width}.png`, fullPage: true });
   });
 }
@@ -94,68 +95,33 @@ test('shape selection updates the renderer, persists, and stays fixed during pra
   await expect(page.getByTestId('model-view')).toHaveAttribute('data-angle', (Math.PI / 6).toFixed(4));
   expect(errors).toEqual([]);
 });
-test('figure, camera and face controls persist without changing a paused session', async ({ page }) => {
-  await page.getByRole('radio', { name: '人体', exact: true }).check();
-  await page.getByRole('slider', { name: 'X軸の初期回転', exact: true }).focus();await page.keyboard.press('Home');
-  await expect(page.getByTestId('model-view')).toHaveAttribute('data-rotation-x', '-180');
-  await page.getByRole('button', { name: '練習スタート' }).click();
-  await page.getByRole('button', { name: '一時停止', exact: true }).click();
-  await expect(page.getByRole('slider', { name: 'X軸の初期回転', exact: true })).toHaveCount(0);
-  await page.locator('.view-settings summary').click();
-  const view = page.getByTestId('model-view');
-  const before = await page.locator('.seconds').textContent();
-  const filled = await page.locator('canvas').screenshot();
-  await page.getByRole('slider', { name: '面の不透明度', exact: true }).focus();await page.keyboard.press('Home');
-  await expect(view).toHaveAttribute('data-opacity', '0');
-  const wire = await page.locator('canvas').screenshot();expect(wire.equals(filled)).toBe(false);
-  await page.getByRole('slider', { name: '面の明度', exact: true }).focus();await page.keyboard.press('End');
-  await expect(view).toHaveAttribute('data-brightness', '100');
-  await expect(view).toHaveAttribute('data-phase', 'paused');await expect(page.locator('.seconds')).toHaveText(before!);
-  await page.reload();await expect(page.getByRole('radio', { name: '人体', exact: true })).toBeChecked();
-  await expect(view).toHaveAttribute('data-opacity', '0');await expect(view).toHaveAttribute('data-rotation-x', '-180');
-});
-test('initial transform and focal length update preview, persist and reset together', async ({ page }) => {
-  await page.getByRole('radio', { name: '人体', exact: true }).check();
-  await page.locator('.view-settings summary').click();
-  for (const name of ['大きさ', 'Y軸の初期回転', 'Z軸の初期回転']) {
-    await page.getByRole('slider', { name, exact: true }).focus();await page.keyboard.press('ArrowRight');
-  }
-  await page.getByRole('button', { name: '100mm', exact: true }).click();
-  const view = page.getByTestId('model-view');
-  await expect(view).toHaveAttribute('data-scale', '101');await expect(view).toHaveAttribute('data-rotation-y', '1');await expect(view).toHaveAttribute('data-rotation-z', '1');
-  await page.reload();await expect(view).toHaveAttribute('data-focal-length', '100');await expect(view).toHaveAttribute('data-scale', '101');
-  await page.getByRole('button', { name: '練習スタート' }).click();await page.getByRole('button', { name: '一時停止', exact: true }).click();
-  await page.getByRole('button', { name: '次へ', exact: true }).click();await expect(view).toHaveAttribute('data-phase', 'paused');
-  await expect(view).toHaveAttribute('data-rotation-y', '1');await expect(view).toHaveAttribute('data-focal-length', '100');
-  await page.getByRole('button', { name: '練習を終了', exact: true }).click();await page.getByRole('button', { name: '初期姿勢とパースをリセット' }).click();
-  await expect(view).toHaveAttribute('data-scale', '100');await expect(view).toHaveAttribute('data-rotation-y', '0');await expect(view).toHaveAttribute('data-rotation-z', '0');await expect(view).toHaveAttribute('data-focal-length', '50');
-});
-test('screen placement persists and stays fixed through question rotation', async ({ page }) => {
-  await page.locator('.view-settings summary').click();
-  const view = page.getByTestId('model-view');
-  await page.getByRole('slider', { name: '画面の左右位置', exact: true }).focus();await page.keyboard.press('ArrowRight');
-  await page.getByRole('slider', { name: '画面の上下位置', exact: true }).focus();await page.keyboard.press('ArrowLeft');
-  await page.reload();await expect(view).toHaveAttribute('data-position-x', '1');await expect(view).toHaveAttribute('data-position-y', '-1');
-  await page.getByRole('button', { name: '練習スタート' }).click();await page.getByRole('button', { name: '一時停止', exact: true }).click();
-  await page.getByRole('button', { name: '次へ', exact: true }).click();await expect(view).toHaveAttribute('data-phase', 'paused');
-  await expect(view).toHaveAttribute('data-position-x', '1');await expect(view).toHaveAttribute('data-position-y', '-1');
-  await page.getByRole('button', { name: '練習を終了', exact: true }).click();await page.getByRole('button', { name: '初期姿勢とパースをリセット' }).click();
-  await expect(view).toHaveAttribute('data-position-x', '0');await expect(view).toHaveAttribute('data-position-y', '0');
+test('setup is centered and only essential controls are initially visible', async ({ page }) => {
+  await expect(page.getByRole('heading', { name: '練習をはじめる' })).toHaveCount(0);
+  await expect(page.getByRole('slider', { name: '焦点距離', exact: true })).toBeHidden();
+  await expect(page.getByRole('slider', { name: '大きさ', exact: true })).toBeHidden();
+  await expect(page.getByRole('group', { name: '練習する形' })).toBeVisible();
+  await expect(page.getByRole('group', { name: '回転軸', exact: true })).toBeVisible();
+  const button = await page.getByRole('button', { name: '練習スタート' }).boundingBox();
+  const details = await page.locator('.view-settings summary').boundingBox();expect(details!.y).toBeGreaterThan(button!.y);
+  await page.locator('.view-settings summary').click();await expect(page.getByRole('slider', { name: '焦点距離', exact: true })).toBeVisible();
 });
 
-test('position and size can change during practice without resetting progress', async ({ page }) => {
-  await page.getByRole('button', { name: '練習スタート' }).click();
-  await page.locator('.view-settings summary').click();
-  await page.getByRole('slider', { name: '画面の左右位置', exact: true }).focus();await page.keyboard.press('ArrowRight');
-  const view = page.getByTestId('model-view');await expect(view).toHaveAttribute('data-phase', 'running');
-  await page.getByRole('button', { name: '一時停止', exact: true }).click();
-  await page.getByRole('button', { name: '次へ', exact: true }).click();await expect(view).toHaveAttribute('data-phase', 'paused');
-  const angle = await view.getAttribute('data-angle');const time = await page.locator('.seconds').textContent();
-  for (const name of ['画面の上下位置', '大きさ']) { await page.getByRole('slider', { name, exact: true }).focus();await page.keyboard.press('ArrowLeft'); }
-  await expect(view).toHaveAttribute('data-scale', '99');await expect(view).toHaveAttribute('data-position-y', '-1');
-  await expect(view).toHaveAttribute('data-angle', angle!);await expect(page.locator('.seconds')).toHaveText(time!);
-  await expect(view).toHaveAttribute('data-phase', 'paused');
-  await page.getByRole('button', { name: '位置と大きさをリセット' }).click();
-  await expect(view).toHaveAttribute('data-scale', '100');await expect(view).toHaveAttribute('data-position-x', '0');await expect(view).toHaveAttribute('data-position-y', '0');
-  await expect(view).toHaveAttribute('data-angle', angle!);await expect(page.locator('.seconds')).toHaveText(time!);
+test('direct mouse controls persist and rotation is locked during practice', async ({ page }) => {
+ const view=page.getByTestId('model-view');const box=(await view.boundingBox())!;
+ const drag=async(button:'left'|'right')=>{await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);await page.mouse.down({button});await page.mouse.move(box.x+box.width*.65,box.y+box.height*.6,{steps:8});await page.mouse.up({button});};
+ await drag('left');expect(await view.getAttribute('data-rotation-y')).not.toBe('0');
+ await drag('right');expect(await view.getAttribute('data-position-x')).not.toBe('0');
+ await page.mouse.wheel(0,-100);await expect(view).not.toHaveAttribute('data-scale','100');
+ const rotation=await view.getAttribute('data-rotation-y');await page.reload();await expect(view).toHaveAttribute('data-rotation-y',rotation!);
+ await page.getByRole('button',{name:'練習スタート'}).click();await page.getByRole('button',{name:'一時停止',exact:true}).click();
+ await view.scrollIntoViewIfNeeded();const r=(await view.boundingBox())!;await page.mouse.move(r.x+80,r.y+80);await page.mouse.down();await page.mouse.move(r.x+150,r.y+120,{steps:5});await page.mouse.up();await expect(view).toHaveAttribute('data-rotation-y',rotation!);
+ const time=await page.locator('.seconds').textContent();await page.getByRole('button',{name:'縮小',exact:true}).click();await expect(page.locator('.seconds')).toHaveText(time!);await expect(view).toHaveAttribute('data-phase','paused');
+ await page.getByRole('button',{name:'位置と大きさをリセット'}).click();await expect(view).toHaveAttribute('data-scale','100');await expect(view).toHaveAttribute('data-position-x','0');
+});
+test('touch drag rotates and two-finger gesture pans and scales', async ({page,context})=>{
+ const cdp=await context.newCDPSession(page);const view=page.getByTestId('model-view');const b=(await view.boundingBox())!;const x=b.x+b.width/2,y=b.y+b.height/2;
+ const send=async(type:'touchStart'|'touchMove'|'touchEnd',touchPoints:{x:number;y:number;id:number}[])=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints});
+ await send('touchStart',[{x,y,id:1}]);await send('touchMove',[{x:x+40,y:y+20,id:1}]);await send('touchEnd',[]);await expect(view).not.toHaveAttribute('data-rotation-y','0');
+ const rot=await view.getAttribute('data-rotation-y');await send('touchStart',[{x:x-40,y,id:1},{x:x+40,y,id:2}]);await send('touchMove',[{x:x-30,y:y+20,id:1},{x:x+70,y:y+20,id:2}]);await send('touchEnd',[]);
+ await expect(view).toHaveAttribute('data-rotation-y',rot!);await expect(view).not.toHaveAttribute('data-scale','100');await expect(view).not.toHaveAttribute('data-position-y','0');
 });

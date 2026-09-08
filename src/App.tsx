@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
-import { SHAPES, shapeLabel } from './shapes';
+import { SHAPES } from './shapes';
 import ModelView from './ModelView';
 import { loadSettings, saveSettings, type Settings, type Axis, type Grid } from './settings';
 import { useSession } from './useSession';
@@ -25,7 +25,8 @@ export default function App() {
   const setup = session.phase === 'setup', complete = session.phase === 'complete';
   const rotating = session.phase === 'rotating', paused = session.phase === 'paused';
   const onReady = useCallback((ok: boolean) => { setReady(ok);if (!ok) dispatch({ type: 'hide', now: performance.now() }); }, [dispatch]);
-  const update = (patch: Partial<Settings>) => { const next = { ...settings, ...patch };setSettings(next);setWarning(saveSettings(next)); };
+  const update = (patch: Partial<Settings>) => { setSettings(previous => { const next = { ...previous, ...patch };return next; }); };
+  useEffect(() => { setWarning(saveSettings(settings)); }, [settings]);
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light';document.documentElement.style.colorScheme = dark ? 'dark' : 'light';document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#242626' : '#fffaf3'); }, [dark]);
   const count = Number(countInput), seconds = Number(secondsInput);
   const validCount = /^\d+$/.test(countInput) && count >= 1 && count <= 360;
@@ -38,25 +39,19 @@ export default function App() {
     <header><h1>HakoDraw</h1><button className="icon-button" aria-label={dark ? 'ライトモードに切り替える' : 'ダークモードに切り替える'}
       title={dark ? 'ライトモードに切り替える' : 'ダークモードに切り替える'} onClick={() => update({ theme: dark ? 'light' : 'dark' })}>{dark ? <Moon /> : <Sun />}</button></header>
     <div className="workspace">
-      <ModelView positionX={settings.positionX} positionY={settings.positionY} opacity={settings.opacity} brightness={settings.brightness} rotationX={settings.rotationX} rotationY={settings.rotationY} rotationZ={settings.rotationZ} scale={settings.scale} focalLength={settings.focalLength} shape={settings.shape} axis={setup ? settings.axis : session.exercise.axis} angle={setup ? 0 : session.angle} phase={session.phase}
+      <ModelView onTransform={update} positionX={settings.positionX} positionY={settings.positionY} opacity={settings.opacity} brightness={settings.brightness} rotationX={settings.rotationX} rotationY={settings.rotationY} rotationZ={settings.rotationZ} scale={settings.scale} focalLength={settings.focalLength} shape={settings.shape} axis={setup ? settings.axis : session.exercise.axis} angle={setup ? 0 : session.angle} phase={session.phase}
         showAxes={setup || settings.localAxes} dark={dark} grid={settings.grid} completedAt={session.completedAt}
         reducedMotion={reducedMotion} axisPulseAt={pulseAt} onReady={onReady} />
       <div className="controls">
-        {setup ? <section aria-labelledby="setup-title"><h2 id="setup-title">練習をはじめる</h2><p className="muted">{shapeLabel(settings.shape)} · 初期姿勢からスタート</p>
+        {!complete && <div className="view-tools"><p id="view-help" className="muted">{setup ? 'ドラッグで回転 · ' : ''}右ドラッグで移動 · ホイールで拡縮<br />{setup ? '1本指で回転 · ' : ''}2本指で移動・ピンチで拡縮</p><div><button aria-label="縮小" disabled={settings.scale <= 50} onClick={() => update({ scale: Math.max(50, settings.scale - 10) })}>−</button><button aria-label="拡大" disabled={settings.scale >= 150} onClick={() => update({ scale: Math.min(150, settings.scale + 10) })}>＋</button><button onClick={() => update({positionX:0,positionY:0,scale:100,...(setup ? {rotationX:0,rotationY:0,rotationZ:0}: {})})}>{setup ? '向きと位置をリセット' : '位置と大きさをリセット'}</button></div><small className="muted">矢印キーで移動・Shift＋矢印で回転・＋/−で拡縮</small></div>}
+        {setup ? <section aria-label="練習の設定">
           <fieldset className="shape-choice"><legend>練習する形</legend><div className="shape-options">
             {SHAPES.map(shape => <label key={shape.id}><input type="radio" name="shape" value={shape.id} checked={settings.shape === shape.id}
               onChange={() => update({ shape: shape.id })} /><span><svg viewBox="0 0 40 40" aria-hidden="true">
               {shape.id === 'figure' ? <path d="M16 3H24V11H16Z M12 16 25 13 29 25 16 28Z M15 31 25 29 27 37 17 39Z" /> : shape.id === 'circle' ? <circle cx="20" cy="20" r="13" /> : shape.id === 'square' ? <rect x="7" y="7" width="26" height="26" /> : <path d={shape.id === 'cube' ? 'M6 12 20 5 34 12 34 28 20 35 6 28Z M6 12 20 19 34 12 M20 19V35' : 'M10 9 22 4 32 9 32 31 20 36 10 31Z M10 9 20 14 32 9 M20 14V36'} />}
               </svg><b>{shape.label}</b><small aria-hidden="true">✓</small></span></label>)}
-          </div><p className="muted shape-hint">{SHAPES.find(shape => shape.id === settings.shape)!.hint}</p></fieldset>
-          <details className="initial-settings" open><summary>初期姿勢とパース<ChevronDown size={16} /></summary>
-            {(['X', 'Y', 'Z'] as const).map(axis => { const key = ('rotation' + axis) as 'rotationX' | 'rotationY' | 'rotationZ';return <label className="range-setting" key={axis}><span><b className={'axis-' + axis}>{axis}軸の初期回転</b><output>{settings[key]}°</output></span><input aria-label={axis + '軸の初期回転'} type="range" min="-180" max="180" value={settings[key]} onChange={e => update({ [key]: Number(e.target.value) })} /></label>; })}
-            <label className="range-setting"><span>焦点距離<output>{settings.focalLength} mm</output></span><input aria-label="焦点距離" type="range" min="35" max="150" value={settings.focalLength} onChange={e => update({ focalLength: Number(e.target.value) })} /></label>
-            <div className="lens-presets">{[35, 50, 100, 150].map(mm => <button key={mm} aria-pressed={settings.focalLength === mm} onClick={() => update({ focalLength: mm })}>{mm}mm</button>)}</div>
-            <p className="muted">短い焦点距離ほど遠近感が強くなります。見かけの大きさを保つため、カメラ距離も連動します。</p>
-            <button className="quiet" onClick={() => update({ positionX: 0, positionY: 0, scale: 100, rotationX: 0, rotationY: 0, rotationZ: 0, focalLength: 50 })}>初期姿勢とパースをリセット</button>
-          </details>
-          <fieldset className="axes-choice"><legend>練習中の回転軸（ワールド）</legend><div className="axis-options">
+          </div></fieldset>
+          <fieldset className="axes-choice"><legend>回転軸</legend><div className="axis-options">
             {(['X', 'Y', 'Z'] as Axis[]).map((axis, i) => <label key={axis}><input type="radio" name="axis" value={axis} checked={settings.axis === axis}
               onChange={() => { update({ axis });setPulseAt(performance.now()); }} /><span><b className={`axis-${axis}`}>{axis}</b>{['左右', '上下', '奥行き'][i]}<small aria-hidden="true">✓</small></span></label>)}
           </div></fieldset>
@@ -68,7 +63,7 @@ export default function App() {
               onBlur={() => { if (validSeconds) update({ seconds }); }} /></label></div>
           {!validCount && <p className="error" id="count-error">問題数は1〜360の整数で入力してください。</p>}
           {!validSeconds && <p className="error" id="seconds-error">秒数は1〜3600の整数で入力してください。</p>}
-          <p className="summary">{validCount && validSeconds ? `${+(360 / count).toFixed(1)}°ずつ / 描く時間 ${+(count * seconds / 60).toFixed(1)}分 ＋ 回転時間` : '問題数と秒数を確認してください。'}</p>
+
           <button className="primary full" onClick={start} disabled={!ready || !validCount || !validSeconds}><Play size={17} />{ready ? '練習スタート' : '3D表示を準備中'}</button>
         </section> : complete ? <section className="done" aria-label="練習完了"><h2>練習完了</h2><p className="muted">{session.exercise.count}問のセッションが終了しました</p>
           <button className="primary full" onClick={start} disabled={!ready}>同じ設定でもう一度</button><button className="full" onClick={() => dispatch({ type: 'exit' })}>設定に戻る</button>
@@ -83,12 +78,16 @@ export default function App() {
             <button disabled={rotating || !ready} onClick={() => dispatch({ type: 'move', delta: 1, now: performance.now(), duration: turnDuration })}>次へ<ChevronRight size={16} /></button></div>
           <button className="quiet exit" onClick={() => dispatch({ type: 'exit' })}>練習を終了</button>
         </section>}
-        {!complete && <details className="view-settings"><summary>ビューの表示設定<ChevronDown size={16} /></summary><div className="view-options">
-            {(['X', 'Y'] as const).map(axis => { const key = axis === 'X' ? 'positionX' : 'positionY';return <label className="range-setting" key={key}><span>{axis === 'X' ? '画面の左右位置' : '画面の上下位置'}<output>{settings[key]}%</output></span><input aria-label={axis === 'X' ? '画面の左右位置' : '画面の上下位置'} type="range" min="-100" max="100" value={settings[key]} onChange={e => update({ [key]: Number(e.target.value) })} /><span className="range-ends"><small>{axis === 'X' ? '左' : '下'}</small><small>中央</small><small>{axis === 'X' ? '右' : '上'}</small></span></label>; })}
-            <label className="range-setting"><span>大きさ<output>{settings.scale}%</output></span><input aria-label="大きさ" type="range" min="50" max="150" value={settings.scale} onChange={e => update({ scale: Number(e.target.value) })} /></label>
+        {!complete && <details className="view-settings" key={setup ? "setup" : "practice"}><summary>ビューの設定<ChevronDown size={16} /></summary><div className="view-options">
+          {setup && <section className="initial-settings" aria-label="初期姿勢とパース"><h3>初期姿勢とパース</h3>
+            <label className="range-setting"><span>焦点距離<output>{settings.focalLength} mm</output></span><input aria-label="焦点距離" type="range" min="35" max="150" value={settings.focalLength} onChange={e => update({ focalLength: Number(e.target.value) })} /></label>
+            <div className="lens-presets">{[35, 50, 100, 150].map(mm => <button key={mm} aria-pressed={settings.focalLength === mm} onClick={() => update({ focalLength: mm })}>{mm}mm</button>)}</div>
+            <p className="muted">短い焦点距離ほど遠近感が強くなります。見かけの大きさを保つため、カメラ距離も連動します。</p>
+            <button className="quiet" onClick={() => update({ positionX: 0, positionY: 0, scale: 100, rotationX: 0, rotationY: 0, rotationZ: 0, focalLength: 50 })}>初期姿勢とパースをリセット</button>
+          </section>}
 
-          <button className="quiet" onClick={() => update({ positionX: 0, positionY: 0, scale: 100 })}>位置と大きさをリセット</button>
-          <label className="setting-row">模写用グリッド<select value={settings.grid} onChange={e => update({ grid: Number(e.target.value) as Grid })}>
+
+          <h3>補助表示と面</h3><label className="setting-row">模写用グリッド<select value={settings.grid} onChange={e => update({ grid: Number(e.target.value) as Grid })}>
             <option value={0}>非表示</option><option value={2}>2 × 2</option><option value={3}>3 × 3</option><option value={4}>4 × 4</option></select></label>
           <label className="setting-row">練習中のローカル軸<span className="switch"><input type="checkbox" role="switch" checked={settings.localAxes} onChange={e => update({ localAxes: e.target.checked })} /><span aria-hidden="true" /></span></label>
           <label className="range-setting"><span>面の不透明度<output>{settings.opacity}%</output></span><input aria-label="面の不透明度" type="range" min="0" max="100" value={settings.opacity} onChange={e => update({ opacity: Number(e.target.value) })} /></label>
