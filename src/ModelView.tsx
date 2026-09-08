@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createScene, type ViewState } from './scene/renderer';
-import type { Grid } from './settings';
+import { bindViewControls } from './viewControls';
+import type { Settings, Grid } from './settings';
 
-export default function ModelView(props: ViewState & { grid: Grid; onReady: (ready: boolean) => void }) {
+export default function ModelView(props: ViewState & { grid: Grid; onTransform: (patch: Partial<Settings>) => void; onReady: (ready: boolean) => void }) {
+  const surface = useRef<HTMLDivElement>(null);
   const mount = useRef<HTMLDivElement>(null);
   const snapshot = useRef(props);snapshot.current = props;
   const [error, setError] = useState('');
@@ -27,8 +29,11 @@ export default function ModelView(props: ViewState & { grid: Grid; onReady: (rea
     canvas.addEventListener('webglcontextlost', contextLost);
     return () => { cancelAnimationFrame(id);canvas.removeEventListener('webglcontextlost', contextLost);scene.dispose(); };
   }, []);
+  useEffect(() => bindViewControls(surface.current!, () => snapshot.current, patch => {
+    snapshot.current = { ...snapshot.current, ...patch };snapshot.current.onTransform(patch);
+  }), []);
   const complete = props.phase === 'complete';
-  return <div className={`model-view ${complete ? 'celebrating' : ''}`} data-testid="model-view" data-axis={props.axis}
+  return <div ref={surface} tabIndex={0} aria-label="3Dビュー操作" aria-describedby="view-help" className={`model-view ${complete ? 'celebrating' : ''}`} data-testid="model-view" data-axis={props.axis}
     data-position-x={props.positionX} data-position-y={props.positionY} data-rotation-x={props.rotationX} data-rotation-y={props.rotationY} data-rotation-z={props.rotationZ} data-scale={props.scale} data-focal-length={props.focalLength} data-opacity={props.opacity} data-brightness={props.brightness} data-shape={props.shape} data-angle={props.angle.toFixed(4)} data-phase={props.phase}>
     <div className="webgl-host" ref={mount} />
     {(error || lost) && <div className="view-error" role="alert"><p>{error || '3D表示が中断されました。ページを再読み込みしてください。'}</p><button onClick={() => location.reload()}>再読み込み</button></div>}
