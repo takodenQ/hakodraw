@@ -29,7 +29,7 @@ export default function ModelView(props: ViewState & { grid: Grid; onReady: (rea
   }, []);
   const complete = props.phase === 'complete';
   return <div className={`model-view ${complete ? 'celebrating' : ''}`} data-testid="model-view" data-axis={props.axis}
-    data-elevation={props.elevation} data-opacity={props.opacity} data-brightness={props.brightness} data-shape={props.shape} data-angle={props.angle.toFixed(4)} data-phase={props.phase}>
+    data-position-x={props.positionX} data-position-y={props.positionY} data-rotation-x={props.rotationX} data-rotation-y={props.rotationY} data-rotation-z={props.rotationZ} data-scale={props.scale} data-focal-length={props.focalLength} data-opacity={props.opacity} data-brightness={props.brightness} data-shape={props.shape} data-angle={props.angle.toFixed(4)} data-phase={props.phase}>
     <div className="webgl-host" ref={mount} />
     {(error || lost) && <div className="view-error" role="alert"><p>{error || '3D表示が中断されました。ページを再読み込みしてください。'}</p><button onClick={() => location.reload()}>再読み込み</button></div>}
     <svg className="grid-overlay" viewBox="0 0 100 100" aria-hidden="true" style={{ opacity: complete ? 0 : 1 }}>
