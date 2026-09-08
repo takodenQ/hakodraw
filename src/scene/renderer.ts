@@ -6,7 +6,7 @@ import type { Phase } from '../session';
 
 export interface ViewState {
   opacity: number; brightness: number; positionX: number; positionY: number; rotationX: number; rotationY: number; rotationZ: number; scale: number; focalLength: number; shape: Shape; axis: Axis; angle: number; phase: Phase; showAxes: boolean; dark: boolean;
-  completedAt: number; reducedMotion: boolean; axisPulseAt: number;
+  highlightAxis?: Axis | null; completedAt: number; reducedMotion: boolean; axisPulseAt: number;
 }
 export interface LabelPosition { axis: Axis; x: number; y: number; depth: number }
 const directions = { X: new THREE.Vector3(1, 0, 0), Y: new THREE.Vector3(0, 1, 0), Z: new THREE.Vector3(0, 0, 1) };
@@ -80,7 +80,7 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
       axes.visible = state.showAxes && state.phase !== 'complete';
       for (const { axis, arrow } of arrows) {
         const pulse = !state.reducedMotion && state.phase === 'setup' ? Math.max(0, 1 - (now - state.axisPulseAt) / 650) : 0;
-        arrow.setLength(.72, .09, .045 * (axis === state.axis ? 1 + .8 * Math.sin(pulse * Math.PI) : 1));
+        arrow.setLength(.72, .09, .045 * (axis === (state.highlightAxis ?? state.axis) ? 1 + .8 * Math.sin(pulse * Math.PI) : 1));
       }
       pivot.updateMatrixWorld(true);
       labels(arrows.map(({ axis }) => {
