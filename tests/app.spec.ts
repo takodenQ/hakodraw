@@ -11,7 +11,7 @@ test('Three.js renders the square and session flow, axes, storage, completion wo
   const before = await view.boundingBox();
   await page.getByLabel('問題数', { exact: true }).fill('2');
   await page.getByLabel('1問の秒数').fill('2');
-  await page.locator('.view-settings summary').click();
+  await page.locator('.view-settings:not(.transform-panel) summary').click();
   const grid = page.getByLabel('模写用グリッド');
   await expect(grid.locator('option')).toHaveText(['非表示', '2 × 2', '3 × 3', '4 × 4']);
   await page.getByRole('switch').uncheck();
@@ -27,7 +27,7 @@ test('Three.js renders the square and session flow, axes, storage, completion wo
   await expect(view).toHaveAttribute('data-phase', 'paused');
   await expect(page.locator('.seconds')).toHaveText('残り2秒');
   await expect(view).toHaveAttribute('data-angle', Math.PI.toFixed(4));
-  await page.locator('.view-settings summary').click();
+  await page.locator('.view-settings:not(.transform-panel) summary').click();
   await page.getByRole('switch').check();
   await expect(page.getByTestId('local-axes')).toBeVisible();
   await grid.selectOption('2');
@@ -43,7 +43,7 @@ test('Three.js renders the square and session flow, axes, storage, completion wo
   await page.getByRole('button', { name: '練習を終了', exact: true }).click();
   await page.reload();
   await expect(page.getByLabel('問題数', { exact: true })).toHaveValue('2');
-  await page.locator('.view-settings summary').click();
+  await page.locator('.view-settings:not(.transform-panel) summary').click();
   await expect(grid).toHaveValue('2');
   expect(errors).toEqual([]);
 });
@@ -102,19 +102,21 @@ test('setup is centered and only essential controls are initially visible', asyn
   await expect(page.getByRole('group', { name: '練習する形' })).toBeVisible();
   await expect(page.getByRole('group', { name: '回転軸', exact: true })).toBeVisible();
   const button = await page.getByRole('button', { name: '練習スタート' }).boundingBox();
-  const details = await page.locator('.view-settings summary').boundingBox();expect(details!.y).toBeGreaterThan(button!.y);
-  await page.locator('.view-settings summary').click();await expect(page.getByRole('slider', { name: '焦点距離', exact: true })).toBeVisible();
+  const details = await page.locator('.view-settings:not(.transform-panel) summary').boundingBox();expect(details!.y).toBeGreaterThan(button!.y);
+  await page.locator('.view-settings:not(.transform-panel) summary').click();await expect(page.getByRole('slider', { name: '焦点距離', exact: true })).toBeVisible();
 });
 
 
 test('step controls are precise, persist and lock rotation during practice', async ({page})=>{
  const view=page.getByTestId('model-view');
+ await page.locator('summary').filter({hasText:'オブジェクトの調整'}).click();
  await page.getByRole('button',{name:'回転を増やす',exact:true}).click();await expect(view).toHaveAttribute('data-rotation-x','15');
  await page.getByLabel('細かく', {exact:false}).check();await page.getByRole('button',{name:'回転を増やす',exact:true}).click();await expect(view).toHaveAttribute('data-rotation-x','16');
  await page.getByRole('button',{name:'Y軸',exact:true}).click();await page.getByRole('button',{name:'回転を減らす',exact:true}).click();await expect(view).toHaveAttribute('data-rotation-y','-1');
  await page.getByRole('button',{name:'移動',exact:true}).click();await page.getByRole('button',{name:'右へ移動',exact:true}).click();await expect(view).toHaveAttribute('data-position-x','1');
  await page.getByRole('button',{name:'大きさ',exact:true}).click();await page.getByRole('button',{name:'拡大',exact:true}).click();await expect(view).toHaveAttribute('data-scale','101');
  await page.reload();await expect(view).toHaveAttribute('data-scale','101');await expect(view).toHaveAttribute('data-rotation-x','16');
+ await page.locator('summary').filter({hasText:'オブジェクトの調整'}).click();
  const box=(await view.boundingBox())!;await page.mouse.move(box.x+50,box.y+50);await page.mouse.down();await page.mouse.move(box.x+100,box.y+100);await page.mouse.up();await expect(view).toHaveAttribute('data-rotation-x','16');
  await page.getByRole('button',{name:'練習スタート'}).click();await page.getByRole('button',{name:'一時停止',exact:true}).click();await expect(page.getByRole('button',{name:'回転',exact:true})).toBeDisabled();
  const time=await page.locator('.seconds').textContent();await page.getByRole('button',{name:'右へ移動',exact:true}).click();await expect(view).toHaveAttribute('data-position-x','6');await expect(page.locator('.seconds')).toHaveText(time!);await expect(view).toHaveAttribute('data-phase','paused');

@@ -66,7 +66,7 @@ export default function App() {
           {!validCount && <p className="error" id="count-error">問題数は1〜360の整数で入力してください。</p>}
           {!validSeconds && <p className="error" id="seconds-error">秒数は1〜3600の整数で入力してください。</p>}
 
-          <button className="primary full" onClick={start} disabled={!ready || !validCount || !validSeconds}><Play size={17} />{ready ? '練習スタート' : '3D表示を準備中'}</button>
+          <button className="primary full start-button" onClick={start} disabled={!ready || !validCount || !validSeconds}><Play size={17} />{ready ? '練習スタート' : '3D表示を準備中'}</button>
         </section> : complete ? <section className="done" aria-label="練習完了"><h2>練習完了</h2><p className="muted">{session.exercise.count}問のセッションが終了しました</p>
           <button className="primary full" onClick={start} disabled={!ready}>同じ設定でもう一度</button><button className="full" onClick={() => dispatch({ type: 'exit' })}>設定に戻る</button>
         </section> : <section aria-label="練習の進行">
