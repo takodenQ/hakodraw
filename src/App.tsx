@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 import { SHAPES } from './shapes';
+import TransformPanel from './TransformPanel';
 import ModelView from './ModelView';
 import { loadSettings, saveSettings, type Settings, type Axis, type Grid } from './settings';
 import { useSession } from './useSession';
@@ -15,6 +16,7 @@ export default function App() {
   const [settings, setSettings] = useState(loaded.settings);
   const [warning, setWarning] = useState(loaded.warning);
   const [ready, setReady] = useState(false);
+  const [highlightAxis, setHighlightAxis] = useState<Axis | null>(null);
   const [pulseAt, setPulseAt] = useState(0);
   const [countInput, setCountInput] = useState(String(settings.count));
   const [secondsInput, setSecondsInput] = useState(String(settings.seconds));
@@ -39,11 +41,11 @@ export default function App() {
     <header><h1>HakoDraw</h1><button className="icon-button" aria-label={dark ? 'ライトモードに切り替える' : 'ダークモードに切り替える'}
       title={dark ? 'ライトモードに切り替える' : 'ダークモードに切り替える'} onClick={() => update({ theme: dark ? 'light' : 'dark' })}>{dark ? <Moon /> : <Sun />}</button></header>
     <div className="workspace">
-      <ModelView onTransform={update} positionX={settings.positionX} positionY={settings.positionY} opacity={settings.opacity} brightness={settings.brightness} rotationX={settings.rotationX} rotationY={settings.rotationY} rotationZ={settings.rotationZ} scale={settings.scale} focalLength={settings.focalLength} shape={settings.shape} axis={setup ? settings.axis : session.exercise.axis} angle={setup ? 0 : session.angle} phase={session.phase}
+      <ModelView positionX={settings.positionX} positionY={settings.positionY} opacity={settings.opacity} brightness={settings.brightness} rotationX={settings.rotationX} rotationY={settings.rotationY} rotationZ={settings.rotationZ} scale={settings.scale} focalLength={settings.focalLength} shape={settings.shape} axis={setup ? settings.axis : session.exercise.axis} angle={setup ? 0 : session.angle} phase={session.phase}
         showAxes={setup || settings.localAxes} dark={dark} grid={settings.grid} completedAt={session.completedAt}
-        reducedMotion={reducedMotion} axisPulseAt={pulseAt} onReady={onReady} />
+        reducedMotion={reducedMotion} highlightAxis={highlightAxis} axisPulseAt={pulseAt} onReady={onReady} />
       <div className="controls">
-        {!complete && <div className="view-tools"><p id="view-help" className="muted">{setup ? 'ドラッグで回転 · ' : ''}右ドラッグで移動 · ホイールで拡縮<br />{setup ? '1本指で回転 · ' : ''}2本指で移動・ピンチで拡縮</p><div><button aria-label="縮小" disabled={settings.scale <= 50} onClick={() => update({ scale: Math.max(50, settings.scale - 10) })}>−</button><button aria-label="拡大" disabled={settings.scale >= 150} onClick={() => update({ scale: Math.min(150, settings.scale + 10) })}>＋</button><button onClick={() => update({positionX:0,positionY:0,scale:100,...(setup ? {rotationX:0,rotationY:0,rotationZ:0}: {})})}>{setup ? '向きと位置をリセット' : '位置と大きさをリセット'}</button></div><small className="muted">矢印キーで移動・Shift＋矢印で回転・＋/−で拡縮</small></div>}
+        {!complete && <TransformPanel settings={settings} setup={setup} update={update} onAxis={axis => { setHighlightAxis(axis);setPulseAt(performance.now()); }} />}
         {setup ? <section aria-label="練習の設定">
           <fieldset className="shape-choice"><legend>練習する形</legend><div className="shape-options">
             {SHAPES.map(shape => <label key={shape.id}><input type="radio" name="shape" value={shape.id} checked={settings.shape === shape.id}
@@ -64,7 +66,7 @@ export default function App() {
           {!validCount && <p className="error" id="count-error">問題数は1〜360の整数で入力してください。</p>}
           {!validSeconds && <p className="error" id="seconds-error">秒数は1〜3600の整数で入力してください。</p>}
 
-          <button className="primary full" onClick={start} disabled={!ready || !validCount || !validSeconds}><Play size={17} />{ready ? '練習スタート' : '3D表示を準備中'}</button>
+          <button className="primary full start-button" onClick={start} disabled={!ready || !validCount || !validSeconds}><Play size={17} />{ready ? '練習スタート' : '3D表示を準備中'}</button>
         </section> : complete ? <section className="done" aria-label="練習完了"><h2>練習完了</h2><p className="muted">{session.exercise.count}問のセッションが終了しました</p>
           <button className="primary full" onClick={start} disabled={!ready}>同じ設定でもう一度</button><button className="full" onClick={() => dispatch({ type: 'exit' })}>設定に戻る</button>
         </section> : <section aria-label="練習の進行">
