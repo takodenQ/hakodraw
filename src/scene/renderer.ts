@@ -5,12 +5,12 @@ import type { Axis } from '../settings';
 import type { Phase } from '../session';
 
 export interface ViewState {
-  opacity: number; brightness: number; elevation: number; shape: Shape; axis: Axis; angle: number; phase: Phase; showAxes: boolean; dark: boolean;
+  opacity: number; brightness: number; positionX: number; positionY: number; rotationX: number; rotationY: number; rotationZ: number; scale: number; focalLength: number; shape: Shape; axis: Axis; angle: number; phase: Phase; showAxes: boolean; dark: boolean;
   completedAt: number; reducedMotion: boolean; axisPulseAt: number;
 }
 export interface LabelPosition { axis: Axis; x: number; y: number; depth: number }
 const directions = { X: new THREE.Vector3(1, 0, 0), Y: new THREE.Vector3(0, 1, 0), Z: new THREE.Vector3(0, 0, 1) };
-const identity = new THREE.Quaternion();
+
 
 export function createScene(host: HTMLDivElement, labels: (positions: LabelPosition[]) => void) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'low-power' });
@@ -44,11 +44,14 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
   };
   const observer = new ResizeObserver(resize);observer.observe(host);resize();
   const initial = new THREE.Quaternion();
+  const base = new THREE.Quaternion();
   const spin = new THREE.Quaternion();
   return {
     render(state: ViewState, now: number) {
-      const elevation = THREE.MathUtils.degToRad(state.elevation);
-      camera.position.set(0, 5.5 * Math.sin(elevation), 5.5 * Math.cos(elevation));camera.lookAt(0, 0, 0);camera.updateMatrixWorld();
+      camera.setFocalLength(state.focalLength);
+      camera.position.set(0, 0, 5.5 * state.focalLength / 50);camera.lookAt(0, 0, 0);camera.updateMatrixWorld();
+      base.setFromEuler(new THREE.Euler(...[state.rotationX, state.rotationY, state.rotationZ].map(THREE.MathUtils.degToRad) as [number, number, number], 'XYZ'));
+      pivot.scale.setScalar(state.scale / 100);
       if (currentShape !== state.shape) {
         pivot.remove(target.root);target.dispose();
         currentShape = state.shape;target = createTarget(currentShape);pivot.add(target.root);
@@ -63,16 +66,16 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
       }
       target.setAppearance(state.dark, state.opacity, state.brightness);
       initial.setFromAxisAngle(directions[state.axis], state.angle);
-      pivot.quaternion.copy(initial);pivot.position.set(0, 0, 0);
+      pivot.quaternion.copy(initial).multiply(base);pivot.position.set(state.positionX / 100 * 1.925, state.positionY / 100 * 1.925, 0);
       let celebration = 0;
       if (state.phase === 'complete') {
         celebration = state.reducedMotion ? 1 : Math.min(1, Math.max(0, (now - state.completedAt) / 2000));
         const settle = Math.min(1, celebration / .65);
         const ease = 1 - (1 - settle) ** 3;
-        pivot.quaternion.slerp(identity, ease);
+        pivot.quaternion.slerp(base, ease);
         spin.setFromAxisAngle(directions.Z, 2 * Math.PI * ease + .1 * Math.sin(Math.PI * Math.max(0, (celebration - .65) / .35)));
         pivot.quaternion.premultiply(spin);
-        pivot.position.y = .32 * ease + .28 * Math.sin(Math.PI * settle);
+        pivot.position.y += .32 * ease + .28 * Math.sin(Math.PI * settle);
       }
       axes.visible = state.showAxes && state.phase !== 'complete';
       for (const { axis, arrow } of arrows) {

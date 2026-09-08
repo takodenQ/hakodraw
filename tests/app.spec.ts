@@ -17,7 +17,8 @@ test('Three.js renders the square and session flow, axes, storage, completion wo
   await page.getByRole('switch').uncheck();
   await expect(page.getByTestId('local-axes')).toBeVisible();
   await page.getByRole('button', { name: '練習スタート' }).click();
-  expect(await view.boundingBox()).toEqual(before);
+  const after = await view.boundingBox();
+  expect({ ...after, y: after!.y + await page.evaluate(() => scrollY) }).toEqual(before);
   await expect(page.getByTestId('local-axes')).toBeHidden();
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
   await page.getByRole('button', { name: '次へ', exact: true }).click();
@@ -95,11 +96,11 @@ test('shape selection updates the renderer, persists, and stays fixed during pra
 });
 test('figure, camera and face controls persist without changing a paused session', async ({ page }) => {
   await page.getByRole('radio', { name: '人体', exact: true }).check();
-  await page.getByRole('slider', { name: '視点の高さ', exact: true }).focus();await page.keyboard.press('Home');
-  await expect(page.getByTestId('model-view')).toHaveAttribute('data-elevation', '-60');
+  await page.getByRole('slider', { name: 'X軸の初期回転', exact: true }).focus();await page.keyboard.press('Home');
+  await expect(page.getByTestId('model-view')).toHaveAttribute('data-rotation-x', '-180');
   await page.getByRole('button', { name: '練習スタート' }).click();
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
-  await expect(page.getByRole('slider', { name: '視点の高さ', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('slider', { name: 'X軸の初期回転', exact: true })).toHaveCount(0);
   await page.locator('.view-settings summary').click();
   const view = page.getByTestId('model-view');
   const before = await page.locator('.seconds').textContent();
@@ -111,5 +112,50 @@ test('figure, camera and face controls persist without changing a paused session
   await expect(view).toHaveAttribute('data-brightness', '100');
   await expect(view).toHaveAttribute('data-phase', 'paused');await expect(page.locator('.seconds')).toHaveText(before!);
   await page.reload();await expect(page.getByRole('radio', { name: '人体', exact: true })).toBeChecked();
-  await expect(view).toHaveAttribute('data-opacity', '0');await expect(view).toHaveAttribute('data-elevation', '-60');
+  await expect(view).toHaveAttribute('data-opacity', '0');await expect(view).toHaveAttribute('data-rotation-x', '-180');
+});
+test('initial transform and focal length update preview, persist and reset together', async ({ page }) => {
+  await page.getByRole('radio', { name: '人体', exact: true }).check();
+  await page.locator('.view-settings summary').click();
+  for (const name of ['大きさ', 'Y軸の初期回転', 'Z軸の初期回転']) {
+    await page.getByRole('slider', { name, exact: true }).focus();await page.keyboard.press('ArrowRight');
+  }
+  await page.getByRole('button', { name: '100mm', exact: true }).click();
+  const view = page.getByTestId('model-view');
+  await expect(view).toHaveAttribute('data-scale', '101');await expect(view).toHaveAttribute('data-rotation-y', '1');await expect(view).toHaveAttribute('data-rotation-z', '1');
+  await page.reload();await expect(view).toHaveAttribute('data-focal-length', '100');await expect(view).toHaveAttribute('data-scale', '101');
+  await page.getByRole('button', { name: '練習スタート' }).click();await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await page.getByRole('button', { name: '次へ', exact: true }).click();await expect(view).toHaveAttribute('data-phase', 'paused');
+  await expect(view).toHaveAttribute('data-rotation-y', '1');await expect(view).toHaveAttribute('data-focal-length', '100');
+  await page.getByRole('button', { name: '練習を終了', exact: true }).click();await page.getByRole('button', { name: '初期姿勢とパースをリセット' }).click();
+  await expect(view).toHaveAttribute('data-scale', '100');await expect(view).toHaveAttribute('data-rotation-y', '0');await expect(view).toHaveAttribute('data-rotation-z', '0');await expect(view).toHaveAttribute('data-focal-length', '50');
+});
+test('screen placement persists and stays fixed through question rotation', async ({ page }) => {
+  await page.locator('.view-settings summary').click();
+  const view = page.getByTestId('model-view');
+  await page.getByRole('slider', { name: '画面の左右位置', exact: true }).focus();await page.keyboard.press('ArrowRight');
+  await page.getByRole('slider', { name: '画面の上下位置', exact: true }).focus();await page.keyboard.press('ArrowLeft');
+  await page.reload();await expect(view).toHaveAttribute('data-position-x', '1');await expect(view).toHaveAttribute('data-position-y', '-1');
+  await page.getByRole('button', { name: '練習スタート' }).click();await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await page.getByRole('button', { name: '次へ', exact: true }).click();await expect(view).toHaveAttribute('data-phase', 'paused');
+  await expect(view).toHaveAttribute('data-position-x', '1');await expect(view).toHaveAttribute('data-position-y', '-1');
+  await page.getByRole('button', { name: '練習を終了', exact: true }).click();await page.getByRole('button', { name: '初期姿勢とパースをリセット' }).click();
+  await expect(view).toHaveAttribute('data-position-x', '0');await expect(view).toHaveAttribute('data-position-y', '0');
+});
+
+test('position and size can change during practice without resetting progress', async ({ page }) => {
+  await page.getByRole('button', { name: '練習スタート' }).click();
+  await page.locator('.view-settings summary').click();
+  await page.getByRole('slider', { name: '画面の左右位置', exact: true }).focus();await page.keyboard.press('ArrowRight');
+  const view = page.getByTestId('model-view');await expect(view).toHaveAttribute('data-phase', 'running');
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await page.getByRole('button', { name: '次へ', exact: true }).click();await expect(view).toHaveAttribute('data-phase', 'paused');
+  const angle = await view.getAttribute('data-angle');const time = await page.locator('.seconds').textContent();
+  for (const name of ['画面の上下位置', '大きさ']) { await page.getByRole('slider', { name, exact: true }).focus();await page.keyboard.press('ArrowLeft'); }
+  await expect(view).toHaveAttribute('data-scale', '99');await expect(view).toHaveAttribute('data-position-y', '-1');
+  await expect(view).toHaveAttribute('data-angle', angle!);await expect(page.locator('.seconds')).toHaveText(time!);
+  await expect(view).toHaveAttribute('data-phase', 'paused');
+  await page.getByRole('button', { name: '位置と大きさをリセット' }).click();
+  await expect(view).toHaveAttribute('data-scale', '100');await expect(view).toHaveAttribute('data-position-x', '0');await expect(view).toHaveAttribute('data-position-y', '0');
+  await expect(view).toHaveAttribute('data-angle', angle!);await expect(page.locator('.seconds')).toHaveText(time!);
 });

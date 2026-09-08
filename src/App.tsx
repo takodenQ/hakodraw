@@ -38,7 +38,7 @@ export default function App() {
     <header><h1>HakoDraw</h1><button className="icon-button" aria-label={dark ? 'ライトモードに切り替える' : 'ダークモードに切り替える'}
       title={dark ? 'ライトモードに切り替える' : 'ダークモードに切り替える'} onClick={() => update({ theme: dark ? 'light' : 'dark' })}>{dark ? <Moon /> : <Sun />}</button></header>
     <div className="workspace">
-      <ModelView opacity={settings.opacity} brightness={settings.brightness} elevation={settings.elevation} shape={settings.shape} axis={setup ? settings.axis : session.exercise.axis} angle={setup ? 0 : session.angle} phase={session.phase}
+      <ModelView positionX={settings.positionX} positionY={settings.positionY} opacity={settings.opacity} brightness={settings.brightness} rotationX={settings.rotationX} rotationY={settings.rotationY} rotationZ={settings.rotationZ} scale={settings.scale} focalLength={settings.focalLength} shape={settings.shape} axis={setup ? settings.axis : session.exercise.axis} angle={setup ? 0 : session.angle} phase={session.phase}
         showAxes={setup || settings.localAxes} dark={dark} grid={settings.grid} completedAt={session.completedAt}
         reducedMotion={reducedMotion} axisPulseAt={pulseAt} onReady={onReady} />
       <div className="controls">
@@ -49,10 +49,14 @@ export default function App() {
               {shape.id === 'figure' ? <path d="M16 3H24V11H16Z M12 16 25 13 29 25 16 28Z M15 31 25 29 27 37 17 39Z" /> : shape.id === 'circle' ? <circle cx="20" cy="20" r="13" /> : shape.id === 'square' ? <rect x="7" y="7" width="26" height="26" /> : <path d={shape.id === 'cube' ? 'M6 12 20 5 34 12 34 28 20 35 6 28Z M6 12 20 19 34 12 M20 19V35' : 'M10 9 22 4 32 9 32 31 20 36 10 31Z M10 9 20 14 32 9 M20 14V36'} />}
               </svg><b>{shape.label}</b><small aria-hidden="true">✓</small></span></label>)}
           </div><p className="muted shape-hint">{SHAPES.find(shape => shape.id === settings.shape)!.hint}</p></fieldset>
-          <label className="range-setting camera-setting"><span>視点の高さ<output>{settings.elevation === 0 ? '水平 0°' : settings.elevation > 0 ? '見下ろし ' + settings.elevation + '°' : '見上げ ' + -settings.elevation + '°'}</output></span>
-            <input aria-label="視点の高さ" type="range" min="-60" max="60" step="1" value={settings.elevation} onChange={e => update({ elevation: Number(e.target.value) })} />
-            <span className="range-ends"><small>見上げ</small><small>水平</small><small>見下ろし</small></span></label>
-          <fieldset className="axes-choice"><legend>回転軸</legend><div className="axis-options">
+          <details className="initial-settings" open><summary>初期姿勢とパース<ChevronDown size={16} /></summary>
+            {(['X', 'Y', 'Z'] as const).map(axis => { const key = ('rotation' + axis) as 'rotationX' | 'rotationY' | 'rotationZ';return <label className="range-setting" key={axis}><span><b className={'axis-' + axis}>{axis}軸の初期回転</b><output>{settings[key]}°</output></span><input aria-label={axis + '軸の初期回転'} type="range" min="-180" max="180" value={settings[key]} onChange={e => update({ [key]: Number(e.target.value) })} /></label>; })}
+            <label className="range-setting"><span>焦点距離<output>{settings.focalLength} mm</output></span><input aria-label="焦点距離" type="range" min="35" max="150" value={settings.focalLength} onChange={e => update({ focalLength: Number(e.target.value) })} /></label>
+            <div className="lens-presets">{[35, 50, 100, 150].map(mm => <button key={mm} aria-pressed={settings.focalLength === mm} onClick={() => update({ focalLength: mm })}>{mm}mm</button>)}</div>
+            <p className="muted">短い焦点距離ほど遠近感が強くなります。見かけの大きさを保つため、カメラ距離も連動します。</p>
+            <button className="quiet" onClick={() => update({ positionX: 0, positionY: 0, scale: 100, rotationX: 0, rotationY: 0, rotationZ: 0, focalLength: 50 })}>初期姿勢とパースをリセット</button>
+          </details>
+          <fieldset className="axes-choice"><legend>練習中の回転軸（ワールド）</legend><div className="axis-options">
             {(['X', 'Y', 'Z'] as Axis[]).map((axis, i) => <label key={axis}><input type="radio" name="axis" value={axis} checked={settings.axis === axis}
               onChange={() => { update({ axis });setPulseAt(performance.now()); }} /><span><b className={`axis-${axis}`}>{axis}</b>{['左右', '上下', '奥行き'][i]}<small aria-hidden="true">✓</small></span></label>)}
           </div></fieldset>
@@ -80,6 +84,10 @@ export default function App() {
           <button className="quiet exit" onClick={() => dispatch({ type: 'exit' })}>練習を終了</button>
         </section>}
         {!complete && <details className="view-settings"><summary>ビューの表示設定<ChevronDown size={16} /></summary><div className="view-options">
+            {(['X', 'Y'] as const).map(axis => { const key = axis === 'X' ? 'positionX' : 'positionY';return <label className="range-setting" key={key}><span>{axis === 'X' ? '画面の左右位置' : '画面の上下位置'}<output>{settings[key]}%</output></span><input aria-label={axis === 'X' ? '画面の左右位置' : '画面の上下位置'} type="range" min="-100" max="100" value={settings[key]} onChange={e => update({ [key]: Number(e.target.value) })} /><span className="range-ends"><small>{axis === 'X' ? '左' : '下'}</small><small>中央</small><small>{axis === 'X' ? '右' : '上'}</small></span></label>; })}
+            <label className="range-setting"><span>大きさ<output>{settings.scale}%</output></span><input aria-label="大きさ" type="range" min="50" max="150" value={settings.scale} onChange={e => update({ scale: Number(e.target.value) })} /></label>
+
+          <button className="quiet" onClick={() => update({ positionX: 0, positionY: 0, scale: 100 })}>位置と大きさをリセット</button>
           <label className="setting-row">模写用グリッド<select value={settings.grid} onChange={e => update({ grid: Number(e.target.value) as Grid })}>
             <option value={0}>非表示</option><option value={2}>2 × 2</option><option value={3}>3 × 3</option><option value={4}>4 × 4</option></select></label>
           <label className="setting-row">練習中のローカル軸<span className="switch"><input type="checkbox" role="switch" checked={settings.localAxes} onChange={e => update({ localAxes: e.target.checked })} /><span aria-hidden="true" /></span></label>

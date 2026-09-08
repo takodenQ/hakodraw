@@ -2,15 +2,18 @@ import { SHAPES, type Shape } from './shapes';
 export type Axis = 'X' | 'Y' | 'Z';
 export type Grid = 0 | 2 | 3 | 4;
 export type Theme = 'auto' | 'light' | 'dark';
-export interface Settings { opacity: number; brightness: number; elevation: number; shape: Shape; count: number; seconds: number; axis: Axis; grid: Grid; localAxes: boolean; theme: Theme }
-export const DEFAULTS: Settings = { opacity: 65, brightness: 75, elevation: 20, shape: 'square', count: 12, seconds: 30, axis: 'Y', grid: 4, localAxes: true, theme: 'auto' };
+export interface Settings { opacity: number; brightness: number; positionX: number; positionY: number; rotationX: number; rotationY: number; rotationZ: number; scale: number; focalLength: number; shape: Shape; count: number; seconds: number; axis: Axis; grid: Grid; localAxes: boolean; theme: Theme }
+export const DEFAULTS: Settings = { opacity: 65, brightness: 75, positionX: 0, positionY: 0, rotationX: 0, rotationY: 0, rotationZ: 0, scale: 100, focalLength: 50, shape: 'square', count: 12, seconds: 30, axis: 'Y', grid: 4, localAxes: true, theme: 'auto' };
 export const STORAGE_KEY = 'hakodraw.settings.v1';
 const integer = (n: unknown, min: number, max: number, fallback: number) =>
   typeof n === 'number' && Number.isInteger(n) && n >= min && n <= max ? n : fallback;
 export function parseSettings(value: unknown): Settings {
-  const v = value && typeof value === 'object' ? value as Partial<Settings> : {};
+  const v = value && typeof value === 'object' ? value as Partial<Settings> & { elevation?: number } : {};
   return {
-    opacity: integer(v.opacity, 0, 100, 65), brightness: integer(v.brightness, 0, 100, 75), elevation: integer(v.elevation, -60, 60, 20),
+    positionX: integer(v.positionX, -100, 100, 0), positionY: integer(v.positionY, -100, 100, 0),
+    opacity: integer(v.opacity, 0, 100, 65), brightness: integer(v.brightness, 0, 100, 75), rotationX: integer(v.rotationX, -180, 180, (0 - integer(v.elevation, -60, 60, 0))),
+    rotationY: integer(v.rotationY, -180, 180, 0), rotationZ: integer(v.rotationZ, -180, 180, 0),
+    scale: integer(v.scale, 50, 150, 100), focalLength: integer(v.focalLength, 35, 150, 50),
     shape: SHAPES.some(item => item.id === v.shape) ? v.shape! : 'square',
     count: integer(v.count, 1, 360, 12), seconds: integer(v.seconds, 1, 3600, 30),
     axis: v.axis === 'X' || v.axis === 'Z' ? v.axis : 'Y',
