@@ -120,7 +120,7 @@ test('direct mouse controls persist and rotation is locked during practice', asy
 });
 test('touch drag rotates and two-finger gesture pans and scales', async ({page,context})=>{
  const cdp=await context.newCDPSession(page);const view=page.getByTestId('model-view');const b=(await view.boundingBox())!;const x=b.x+b.width/2,y=b.y+b.height/2;
- const send=async(type:string,touchPoints:object[])=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints});
+ const send=async(type:'touchStart'|'touchMove'|'touchEnd',touchPoints:{x:number;y:number;id:number}[])=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints});
  await send('touchStart',[{x,y,id:1}]);await send('touchMove',[{x:x+40,y:y+20,id:1}]);await send('touchEnd',[]);await expect(view).not.toHaveAttribute('data-rotation-y','0');
  const rot=await view.getAttribute('data-rotation-y');await send('touchStart',[{x:x-40,y,id:1},{x:x+40,y,id:2}]);await send('touchMove',[{x:x-30,y:y+20,id:1},{x:x+70,y:y+20,id:2}]);await send('touchEnd',[]);
  await expect(view).toHaveAttribute('data-rotation-y',rot!);await expect(view).not.toHaveAttribute('data-scale','100');await expect(view).not.toHaveAttribute('data-position-y','0');
