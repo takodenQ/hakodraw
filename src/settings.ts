@@ -1,15 +1,19 @@
 import { SHAPES, type Shape } from './shapes';
+import { connectionById, type GuidePreset } from './connections';
+export interface Settings { connectionId?: string; guidePreset?: GuidePreset }
 export type Axis = 'X' | 'Y' | 'Z';
 export type Grid = 0 | 2 | 3 | 4;
 export type Theme = 'auto' | 'light' | 'dark';
 export interface Settings { opacity: number; brightness: number; positionX: number; positionY: number; rotationX: number; rotationY: number; rotationZ: number; scale: number; focalLength: number; shape: Shape; count: number; seconds: number; axis: Axis; grid: Grid; localAxes: boolean; theme: Theme }
-export const DEFAULTS: Settings = { opacity: 65, brightness: 75, positionX: 0, positionY: 0, rotationX: 0, rotationY: 0, rotationZ: 0, scale: 100, focalLength: 50, shape: 'square', count: 12, seconds: 30, axis: 'Y', grid: 4, localAxes: true, theme: 'auto' };
+export const DEFAULTS: Settings = { connectionId: 'head-chest', guidePreset: 'standard', opacity: 65, brightness: 75, positionX: 0, positionY: 0, rotationX: 0, rotationY: 0, rotationZ: 0, scale: 100, focalLength: 50, shape: 'square', count: 12, seconds: 30, axis: 'Y', grid: 4, localAxes: true, theme: 'auto' };
 export const STORAGE_KEY = 'hakodraw.settings.v1';
 const integer = (n: unknown, min: number, max: number, fallback: number) =>
   typeof n === 'number' && Number.isInteger(n) && n >= min && n <= max ? n : fallback;
 export function parseSettings(value: unknown): Settings {
   const v = value && typeof value === 'object' ? value as Partial<Settings> & { elevation?: number } : {};
   return {
+    connectionId: connectionById(v.connectionId).id,
+    guidePreset: v.guidePreset === 'learning' || v.guidePreset === 'test' ? v.guidePreset : 'standard',
     positionX: integer(v.positionX, -100, 100, 0), positionY: integer(v.positionY, -100, 100, 0),
     opacity: integer(v.opacity, 0, 100, 65), brightness: integer(v.brightness, 0, 100, 75), rotationX: integer(v.rotationX, -180, 180, (0 - integer(v.elevation, -60, 60, 0))),
     rotationY: integer(v.rotationY, -180, 180, 0), rotationZ: integer(v.rotationZ, -180, 180, 0),

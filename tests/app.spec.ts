@@ -77,7 +77,7 @@ for (const [width, height] of [[320, 640], [390, 844], [844, 390], [1280, 900]])
 }
 test('shape selection updates the renderer, persists, and stays fixed during practice', async ({ page }) => {
   const errors: string[] = [];page.on('pageerror', error => errors.push(error.message));
-  for (const [shape, label] of [['circle', '円'], ['cube', '立方体'], ['cuboid', '直方体'], ['square', '正方形']]) {
+  for (const [shape, label] of [['circle', '円'], ['cube', '立方体'], ['cuboid', '直方体'], ['square', '正方形'], ['mannequin', '全身素体']]) {
     await page.getByRole('radio', { name: label, exact: true }).check();
     await expect(page.locator('canvas')).toHaveAttribute('aria-label', 'Three.jsで描画した' + label);
     await expect(page.getByTestId('model-view')).toHaveAttribute('data-shape', shape);
