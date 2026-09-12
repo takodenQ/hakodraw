@@ -3,8 +3,10 @@ import { createTarget } from './target';
 import { shapeLabel, type Shape } from '../shapes';
 import type { Axis } from '../settings';
 import type { Phase } from '../session';
+import { connectionById, type GuidePreset } from '../connections';
 
 export interface ViewState {
+  connectionId?: string; guidePreset?: GuidePreset;
   opacity: number; brightness: number; positionX: number; positionY: number; rotationX: number; rotationY: number; rotationZ: number; scale: number; focalLength: number; shape: Shape; axis: Axis; angle: number; phase: Phase; showAxes: boolean; dark: boolean;
   highlightAxis?: Axis | null; completedAt: number; reducedMotion: boolean; axisPulseAt: number;
 }
@@ -20,11 +22,15 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
   renderer.domElement.setAttribute('role', 'img');
   host.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
+  scene.add(new THREE.AmbientLight(0xffffff, 1.6));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+  keyLight.position.set(-3, 5, 6);scene.add(keyLight);
   const camera = new THREE.PerspectiveCamera(40, 1, .1, 100);
   camera.setFocalLength(50);
   camera.position.set(0, 0, 5.5);
   camera.lookAt(0, 0, 0);
   let currentShape: Shape = 'square';
+  let currentConnection: string | undefined;
   let target = createTarget(currentShape);
   const pivot = new THREE.Group();
   pivot.add(target.root);scene.add(pivot);
@@ -52,12 +58,13 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
       camera.position.set(0, 0, 5.5 * state.focalLength / 50);camera.lookAt(0, 0, 0);camera.updateMatrixWorld();
       base.setFromEuler(new THREE.Euler(...[state.rotationX, state.rotationY, state.rotationZ].map(THREE.MathUtils.degToRad) as [number, number, number], 'XYZ'));
       pivot.scale.setScalar(state.scale / 100);
-      if (currentShape !== state.shape) {
+      if (currentShape !== state.shape || currentConnection !== state.connectionId) {
         pivot.remove(target.root);target.dispose();
-        currentShape = state.shape;target = createTarget(currentShape);pivot.add(target.root);
+        currentShape = state.shape;currentConnection = state.connectionId;target = createTarget(currentShape, currentConnection);pivot.add(target.root);
         lastDark = undefined;
       }
-      renderer.domElement.setAttribute('aria-label', 'Three.jsで描画した' + shapeLabel(state.shape));
+      renderer.domElement.setAttribute('aria-label', 'Three.jsで描画した' + (state.connectionId ? connectionById(state.connectionId).label : shapeLabel(state.shape)));
+      target.setGuides(state.guidePreset ?? 'standard', state.phase === 'complete');
       if (lastDark !== state.dark) {
         lastDark = state.dark;
         renderer.setClearColor(state.dark ? '#303532' : '#fffdf9');

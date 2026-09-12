@@ -4,6 +4,7 @@ export const SHAPES = [
   { id: 'cube', label: '立方体', hint: '面のつながりを観察' },
   { id: 'cuboid', label: '直方体', hint: '長さと奥行きを観察' },
   { id: 'figure', label: '人体', hint: '頭・胸郭・骨盤の傾きとひねりを観察' },
+  { id: 'mannequin', label: '全身素体', hint: '三面図を参考にした全身の立体構造を観察' },
 ] as const;
 export type Shape = typeof SHAPES[number]['id'];
 export const shapeLabel = (shape: Shape) => SHAPES.find(item => item.id === shape)!.label;

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 import { SHAPES } from './shapes';
+import { CONNECTIONS, connectionById, type GuidePreset } from './connections';
 import TransformPanel from './TransformPanel';
 import ModelView from './ModelView';
+import PerspectivePractice from './PerspectivePractice';
 import { loadSettings, saveSettings, type Settings, type Axis, type Grid } from './settings';
 import { useSession } from './useSession';
 
@@ -12,6 +14,7 @@ function useMedia(query: string) {
   return matches;
 }
 export default function App() {
+  const [mode,setMode]=useState<'rotation'|'perspective'|'connection'>('rotation');
   const [loaded] = useState(loadSettings);
   const [settings, setSettings] = useState(loaded.settings);
   const [warning, setWarning] = useState(loaded.warning);
@@ -37,22 +40,28 @@ export default function App() {
     if (!validCount || !validSeconds || !ready) return;
     update({ count, seconds });dispatch({ type: 'start', exercise: { count, seconds, axis: settings.axis }, now: performance.now() });
   };
+  if(mode==='perspective')return <PerspectivePractice dark={dark} onTheme={()=>update({theme:dark?'light':'dark'})} onBack={()=>setMode('rotation')} onConnection={()=>setMode('connection')}/>;
   return <main className={`app ${setup ? 'is-setup' : 'is-session'}`}>
     <header><h1>HakoDraw</h1><button className="icon-button" aria-label={dark ? 'ライトモードに切り替える' : 'ダークモードに切り替える'}
       title={dark ? 'ライトモードに切り替える' : 'ダークモードに切り替える'} onClick={() => update({ theme: dark ? 'light' : 'dark' })}>{dark ? <Moon /> : <Sun />}</button></header>
+    <nav className="practice-modes" aria-label="練習モード">{(['rotation', 'perspective', 'connection'] as const).map((item, i) => <button key={item} aria-current={mode === item ? 'page' : undefined} disabled={!setup&&!complete} onClick={() => { dispatch({ type: 'exit' });setMode(item); }}>{['回転練習', 'パース練習', '接続練習'][i]}</button>)}</nav>
+{mode === 'connection' && <section aria-label="接続練習の案内"><p>{connectionById(settings.connectionId).hint}</p><p className="muted">紙や描画ソフトに描き、補助表示で接続を確認しましょう。</p><label className="setting-row">補助表示<select aria-label="補助表示" value={settings.guidePreset ?? 'standard'} onChange={e => update({ guidePreset: e.target.value as GuidePreset })}><option value="learning">学習</option><option value="standard">標準</option><option value="test">テスト</option></select></label><p className="muted">{settings.guidePreset === 'learning' ? '中心線・接続点・接続軸・方向線（矢印は前）' : settings.guidePreset === 'test' ? '立体のみ表示' : '中心線・接続点を表示'}</p></section>}
     <div className="workspace">
       <ModelView positionX={settings.positionX} positionY={settings.positionY} opacity={settings.opacity} brightness={settings.brightness} rotationX={settings.rotationX} rotationY={settings.rotationY} rotationZ={settings.rotationZ} scale={settings.scale} focalLength={settings.focalLength} shape={settings.shape} axis={setup ? settings.axis : session.exercise.axis} angle={setup ? 0 : session.angle} phase={session.phase}
-        showAxes={setup || settings.localAxes} dark={dark} grid={settings.grid} completedAt={session.completedAt}
+        connectionId={mode === 'connection' ? connectionById(settings.connectionId).id : undefined} guidePreset={settings.guidePreset}
+        showAxes={mode === 'connection' ? settings.guidePreset === 'learning' : setup || settings.localAxes} dark={dark} grid={settings.grid} completedAt={session.completedAt}
         reducedMotion={reducedMotion} highlightAxis={highlightAxis} axisPulseAt={pulseAt} onReady={onReady} />
       <div className="controls">
         {!complete && <TransformPanel settings={settings} setup={setup} update={update} onAxis={axis => { setHighlightAxis(axis);setPulseAt(performance.now()); }} />}
         {setup ? <section aria-label="練習の設定">
-          <fieldset className="shape-choice"><legend>練習する形</legend><div className="shape-options">
+          {mode === 'connection' ? <fieldset><legend>練習する接続</legend><div className="connection-options">{CONNECTIONS.map(item => <label key={item.id}><input type="radio" name="connection" checked={connectionById(settings.connectionId).id === item.id} onChange={() => update({ connectionId: item.id })} />{item.label}</label>)}</div></fieldset> : <fieldset className="shape-choice"><legend>練習する形</legend><div className="shape-options">
             {SHAPES.map(shape => <label key={shape.id}><input type="radio" name="shape" value={shape.id} checked={settings.shape === shape.id}
               onChange={() => update({ shape: shape.id })} /><span><svg viewBox="0 0 40 40" aria-hidden="true">
+              {shape.id === 'mannequin' ? <path d="M17 3H23V10H17Z M14 13H26L24 23H16Z M14 14 8 25 M26 14 32 25 M17 24 15 37 M23 24 25 37" /> : <>
               {shape.id === 'figure' ? <path d="M16 3H24V11H16Z M12 16 25 13 29 25 16 28Z M15 31 25 29 27 37 17 39Z" /> : shape.id === 'circle' ? <circle cx="20" cy="20" r="13" /> : shape.id === 'square' ? <rect x="7" y="7" width="26" height="26" /> : <path d={shape.id === 'cube' ? 'M6 12 20 5 34 12 34 28 20 35 6 28Z M6 12 20 19 34 12 M20 19V35' : 'M10 9 22 4 32 9 32 31 20 36 10 31Z M10 9 20 14 32 9 M20 14V36'} />}
+              </>}
               </svg><b>{shape.label}</b><small aria-hidden="true">✓</small></span></label>)}
-          </div></fieldset>
+          </div></fieldset>}
           <fieldset className="axes-choice"><legend>回転軸</legend><div className="axis-options">
             {(['X', 'Y', 'Z'] as Axis[]).map((axis, i) => <label key={axis}><input type="radio" name="axis" value={axis} checked={settings.axis === axis}
               onChange={() => { update({ axis });setPulseAt(performance.now()); }} /><span><b className={`axis-${axis}`}>{axis}</b>{['左右', '上下', '奥行き'][i]}<small aria-hidden="true">✓</small></span></label>)}
