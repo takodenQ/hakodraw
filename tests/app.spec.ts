@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/#rotation');
   await expect(page.getByRole('button', { name: '練習スタート' })).toBeEnabled();
 });
 test('Three.js renders the square and session flow, axes, storage, completion work', async ({ page }) => {

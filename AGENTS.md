@@ -14,14 +14,28 @@ HakoDrawは、立体をさまざまな方向から描く練習を行うブラウ
 - 接続練習：`docs/connection-practice.md`
 - パース練習：`docs/perspective-practice.md`
 - 全身素体：`docs/mannequin.md`
-- デザイン方針：`docs/design-system.md`
+- デザイン方針・Rare UI・ライト／ダークの表現：`docs/design-system.md`
+- 初心者向け・継続支援（ホーム、コース、練習記録）：`docs/beginner-support.md`
 
 要件文書と実装が食い違う場合は、黙って仕様を変更せず、食い違いを報告してください。
 
 ## Architecture
 
-- `src/App.tsx`：練習モード選択と回転・接続練習の画面
+- `src/App.tsx`：画面の切り替え（ホーム・各練習）と回転・接続練習の画面
+- `src/Shell.tsx`：全画面共通のヘッダーとタブ（画面が変わっても再生成しない）
+- `src/ModeNav.tsx`：練習モードのタブ（Rare UIのAnimatedTab）と、URLのハッシュによる画面同期
+- `src/components/rareui/`：Rare UIの部品（AnimatedTab、GlassShimmerButton、LiquidTooltip）。ソースをコピーして所有している
+- `src/app.css`：スタイルの入口。既存CSSは `app` レイヤー、Tailwindは `utilities` レイヤー（`docs/design-system.md` 参照）
+- `src/rich.css`：ライト・ダークの装飾（オーロラ、光る縁、Rare UI用トークン）
+- `src/Home.tsx`：ホーム画面（今日のおすすめ、記録、コース、バックアップ）
+- `src/CompletionCard.tsx`：練習後の振り返りと次のおすすめ
 - `src/PerspectivePractice.tsx`：パース練習
+- `src/course.ts`：はじめてのコースの定義と、おすすめ・量の調整
+- `src/progress.ts`：練習記録の保存・補正と、週・連続日数・スタンプの計算
+- `src/achievements.ts`：実績の定義と、記録からの計算・獲得の保存
+- `src/Achievements.tsx` / `src/Medal.tsx`：実績画面と、メダルのSVGイラスト
+- `src/useProgress.ts` / `src/useSessionLogger.ts`：記録の状態管理と、セッションからの記録
+- `src/useSessionAids.ts` / `src/sound.ts`：練習中の画面消灯防止、切り替え音、キー操作
 - `src/session.ts`：時間制限付きセッションの状態遷移
 - `src/settings.ts`：設定、検証、ブラウザ保存
 - `src/connections.ts`：接続練習の項目とパーツ配置
@@ -39,6 +53,7 @@ HakoDrawは、立体をさまざまな方向から描く練習を行うブラウ
 - 設定の変更で、進行中の問題番号、残り時間、一時停止状態を失わないようにしてください。
 - 新しい保存項目には既定値と不正値の補正を用意してください。
 - 色だけに依存して状態や軸を表現しないでください。
+- CSSは `src/app.css` からのみ読み込んでください（`main.tsx` やコンポーネントから個別にCSSをimportすると、レイヤーの外に出て Rare UI のスタイルより優先されます）。Tailwindは Rare UI の部品のためだけに使います。
 - 医学的・教育的な効果を、根拠なく断定しないでください。
 
 ## Commands
