@@ -1,0 +1,15 @@
+/*
+ * スタイルの入口。既存のCSSはすべて app レイヤーに入れ、Rare UI が使う Tailwind のユーティリティ（utilities レイヤー）が
+ * 上書きできるようにする。Tailwind のリセット（preflight）は読み込まず、既存の見た目には影響させない。
+ */
+@layer theme, app, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "./styles.css" layer(app);
+@import "./design.css" layer(app);
+@import "./home.css" layer(app);
+@import "./perspective.css" layer(app);
+@import "./rich.css" layer(app);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* ダークテーマはアプリの data-theme 属性で切り替える（Rare UI の dark: もこれに従う）。 */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));

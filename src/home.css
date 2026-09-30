@@ -1,0 +1,150 @@
+/* ホーム画面・練習後の振り返り・コース案内。既存のトークン（--surface / --line / --accent など）を使う。 */
+.home { display: grid; gap: 14px; margin-top: 16px; }
+.home-greeting { font-size: .95rem; color: var(--muted); }
+.home-card { padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface-soft, var(--paper)); box-shadow: inset 0 1px 0 var(--glass-edge, transparent); min-width: 0; }
+.home-card h2 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+.home-card p { margin-top: 8px; }
+.home-card summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; cursor: pointer; list-style: none; }
+.home-card summary::-webkit-details-marker { display: none; }
+.home-card summary h2 small { margin-left: 6px; font-size: .8rem; font-weight: 500; color: var(--muted); }
+.home-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.eyebrow { margin: 0 0 4px !important; font-size: .75rem; font-weight: 600; letter-spacing: .06em; color: var(--focus); }
+
+.onboarding ol { margin: 10px 0 14px; padding-left: 0; list-style: none; display: grid; gap: 10px; counter-reset: step; }
+.onboarding li { position: relative; padding-left: 34px; font-size: .875rem; color: var(--muted); counter-increment: step; }
+.onboarding li::before { content: counter(step); position: absolute; left: 0; top: 0; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--button-ink); font-size: .8rem; font-weight: 600; }
+.onboarding li b { display: block; color: var(--ink); font-weight: 600; }
+
+.today { border-color: color-mix(in srgb, var(--accent), var(--line) 30%); background: linear-gradient(145deg, var(--accent-soft, transparent), var(--surface-soft, var(--paper))); }
+.today h2 { font-size: 1.2rem; }
+.today-actions { display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; margin-top: 12px; }
+.today-actions button { min-height: 48px; }
+
+.goal { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--muted); }
+.goal select { width: auto; min-height: 40px; }
+.week-count { display: flex; align-items: baseline; gap: 6px; font-size: 1rem; }
+.week-count b { font-size: 1.9rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.week-count span { font-size: .8rem; color: var(--muted); margin-left: 6px; }
+.goal-bar { height: 8px; margin: 6px 0 14px; border-radius: 5px; background: var(--track); overflow: hidden; }
+.goal-bar > div { height: 100%; border-radius: inherit; background: var(--bar); transition: width .3s ease; }
+.calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.calendar-head { text-align: center; font-size: .7rem; color: var(--muted); }
+.calendar-day { display: grid; place-items: center; aspect-ratio: 1; max-height: 40px; border-radius: 10px; border: 1px solid var(--line); font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.calendar-day[data-practiced=true] { background: var(--accent); border-color: var(--accent); color: var(--button-ink); }
+.calendar-day[data-future=true] { opacity: .35; }
+.calendar-day[data-today=true] { outline: 2px solid var(--focus); outline-offset: 1px; color: var(--ink); }
+.calendar-day[data-today=true][data-practiced=true] { color: var(--button-ink); }
+.streak { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .9rem; }
+.streak svg { color: var(--focus); flex: none; }
+.streak span { flex-basis: 100%; font-size: .75rem; color: var(--muted); }
+
+/* 実績・メダル */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.medal { display: block; flex: none; filter: drop-shadow(0 3px 4px rgba(50, 35, 20, .22)); }
+.medal[data-earned=false] { filter: none; }
+.home-card h2 small, .home-card h3 small { margin-left: 6px; font-size: .8rem; font-weight: 500; color: var(--muted); }
+.new-badge { padding: 1px 6px; border-radius: 8px; background: #d94a4a; color: #fff; font-size: .62rem; font-weight: 700; letter-spacing: .04em; line-height: 1.5; }
+.new-badge.inline { font-size: .72rem; padding: 2px 8px; }
+.latest-medals { display: flex; gap: 10px; margin: 12px 0 4px; padding: 0; list-style: none; overflow-x: auto; }
+.latest-medals li { display: grid; justify-items: center; gap: 2px; width: 72px; flex: none; text-align: center; }
+.latest-medals span { font-size: .68rem; line-height: 1.3; color: var(--muted); }
+.home .home-card > button.full { margin-top: 10px; }
+
+.achievements { display: grid; gap: 14px; margin-top: 16px; }
+.achievements h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.page-title { margin: 0; font-size: 1.25rem; font-weight: 600; }
+.ach-total { display: flex; align-items: baseline; gap: 6px; margin: 0; font-size: 1rem; }
+.ach-total b { font-size: 2rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.ach-total span { margin-left: 6px; font-size: .8rem; color: var(--muted); }
+.tier-counts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin: 4px 0 12px; padding: 0; list-style: none; }
+.tier-counts li { display: grid; justify-items: center; gap: 2px; }
+.tier-counts span { display: grid; justify-items: center; font-size: .62rem; color: var(--muted); line-height: 1.3; }
+.tier-counts b { font-size: .78rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 8px; }
+.stat-tiles div { padding: 8px 6px; border: 1px solid var(--line); border-radius: 12px; text-align: center; }
+.stat-tiles dt { font-size: .68rem; color: var(--muted); }
+.stat-tiles dd { margin: 0; font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.soon { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+.soon button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; text-align: left; justify-content: flex-start; }
+.soon button > span { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.soon b { font-size: .88rem; font-weight: 600; }
+.medal-progress { display: grid; gap: 3px; }
+.medal-progress .goal-bar { margin: 0; height: 6px; }
+.medal-progress > span { font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.medal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; margin-top: 10px; }
+.medal-tile { position: relative; display: grid; justify-items: center; align-content: start; gap: 2px; min-height: 0; padding: 8px 4px 6px; border-radius: 14px; border: 1px solid transparent; background: transparent; box-shadow: none; }
+.medal-tile[aria-pressed=true] { border-color: var(--focus); background: var(--accent-soft, var(--track)); }
+.medal-tile[data-earned=false] .medal-name { color: var(--muted); }
+.medal-name { font-size: .7rem; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+.medal-tile .new-badge { position: absolute; top: 4px; right: 4px; }
+.detail-sheet { position: sticky; bottom: 10px; z-index: 5; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--focus); border-radius: 16px; background: var(--surface, var(--paper)); box-shadow: 0 10px 28px var(--shadow, rgba(0, 0, 0, .18)); }
+.detail-sheet h3 { margin: 0 0 2px; }
+.detail-sheet p { margin: 4px 0 0; font-size: .85rem; }
+.detail-sheet .eyebrow { margin: 0 !important; }
+.detail-sheet .icon-button { align-self: start; }
+
+.new-achievements { margin: 14px 0 4px; padding: 12px; border: 1px solid var(--focus); border-radius: 14px; background: var(--accent-soft, var(--track)); animation: medal-pop .5s cubic-bezier(.23, 1, .32, 1) both; }
+.new-achievements ul { display: grid; gap: 8px; margin: 8px 0 0; padding: 0; list-style: none; }
+.new-achievements li { display: flex; align-items: center; gap: 10px; }
+.new-achievements li span { display: grid; min-width: 0; }
+.new-achievements b { font-size: .9rem; }
+.new-achievements small { font-size: .72rem; color: var(--muted); }
+.new-achievements .eyebrow { margin: 0 !important; }
+.new-achievements .quiet { margin-top: 6px; padding-inline: 0; min-height: 40px; }
+@keyframes medal-pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .new-achievements { animation: none; } }
+
+.course { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+.course li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 12px; }
+.course li[data-next=true] { border-color: var(--focus); background: var(--accent-soft, var(--track)); }
+.course li[data-done=true] .course-mark { background: var(--accent); border-color: var(--accent); color: var(--button-ink); }
+.course-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--line-strong, var(--line)); border-radius: 50%; font-size: .78rem; }
+.course b { display: block; font-size: .9rem; font-weight: 600; }
+.course small { color: var(--muted); font-size: .72rem; }
+.course button { min-height: 40px; padding: 6px 14px; font-size: .85rem; }
+
+.free-modes { display: grid; gap: 8px; margin-top: 10px; }
+.free-modes button { display: grid; justify-items: start; gap: 2px; padding: 10px 14px; text-align: left; }
+.free-modes b { font-size: .9rem; font-weight: 600; }
+.free-modes span { font-size: .78rem; color: var(--muted); font-weight: 400; }
+
+.history { display: grid; gap: 4px; margin: 10px 0 0; padding: 0; list-style: none; }
+.history li { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 8px; align-items: baseline; font-size: .85rem; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.history time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.history small { grid-column: 2; color: var(--muted); font-size: .72rem; }
+
+.data-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.data-actions button { padding-inline: 6px; font-size: .85rem; }
+
+/* 練習画面まわり */
+.course-banner { margin-bottom: 18px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--accent), var(--line) 30%); border-radius: 14px; background: var(--accent-soft, var(--track)); }
+.course-banner h2 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+.course-banner p { margin-top: 6px; font-size: .875rem; }
+.session-tip { margin: -6px 0 14px; padding: 8px 10px; border-left: 3px solid var(--accent); border-radius: 4px; background: var(--track); font-size: .8rem; color: var(--muted); }
+.presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.presets button { display: grid; gap: 0; padding: 6px 4px; }
+.presets button b { font-size: .85rem; font-weight: 600; }
+.presets button small { font-size: .68rem; color: var(--muted); }
+.presets button[aria-pressed=true] { border-color: var(--focus); background: var(--accent-soft, var(--track)); box-shadow: inset 0 0 0 1px var(--focus); }
+.total-time { margin-top: 10px; }
+.sound-toggle { margin-top: 8px; padding-inline: 8px; font-size: .85rem; }
+.sound-toggle[aria-pressed=true] { color: var(--ink); }
+.session-aids { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; margin-top: 8px; }
+.session-aids .sound-toggle { margin-top: 0; }
+.key-hint { font-size: .72rem; }
+@media (pointer: coarse) { .key-hint { display: none; } }
+
+.week-note { margin-top: 4px; font-size: .85rem; }
+.feeling { margin: 14px 0 4px; padding: 0; border: 0; min-width: 0; }
+.feeling legend { margin-bottom: 8px; font-weight: 600; }
+.feeling > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.feeling button { padding: 6px 4px; font-size: .8rem; }
+.feeling button[aria-pressed=true] { border-color: var(--focus); background: var(--accent-soft, var(--track)); box-shadow: inset 0 0 0 1px var(--focus); }
+.feeling p { margin-top: 8px; font-size: .75rem; }
+
+@media (max-width: 480px) {
+  .home-card { padding: 14px; }
+  .stamps { grid-template-columns: 1fr 1fr; }
+  .today-actions { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .goal-bar > div { transition: none; } }

@@ -1,11 +1,10 @@
 import { SHAPES, type Shape } from './shapes';
 import { connectionById, type GuidePreset } from './connections';
-export interface Settings { connectionId?: string; guidePreset?: GuidePreset }
 export type Axis = 'X' | 'Y' | 'Z';
 export type Grid = 0 | 2 | 3 | 4;
 export type Theme = 'auto' | 'light' | 'dark';
-export interface Settings { opacity: number; brightness: number; positionX: number; positionY: number; rotationX: number; rotationY: number; rotationZ: number; scale: number; focalLength: number; shape: Shape; count: number; seconds: number; axis: Axis; grid: Grid; localAxes: boolean; theme: Theme }
-export const DEFAULTS: Settings = { connectionId: 'head-chest', guidePreset: 'standard', opacity: 65, brightness: 75, positionX: 0, positionY: 0, rotationX: 0, rotationY: 0, rotationZ: 0, scale: 100, focalLength: 50, shape: 'square', count: 12, seconds: 30, axis: 'Y', grid: 4, localAxes: true, theme: 'auto' };
+export interface Settings { connectionId?: string; guidePreset?: GuidePreset; opacity: number; brightness: number; positionX: number; positionY: number; rotationX: number; rotationY: number; rotationZ: number; scale: number; focalLength: number; shape: Shape; count: number; seconds: number; axis: Axis; grid: Grid; localAxes: boolean; sound: boolean; theme: Theme }
+export const DEFAULTS: Settings = { connectionId: 'head-chest', guidePreset: 'standard', opacity: 65, brightness: 75, positionX: 0, positionY: 0, rotationX: 0, rotationY: 0, rotationZ: 0, scale: 100, focalLength: 50, shape: 'square', count: 12, seconds: 30, axis: 'Y', grid: 4, localAxes: true, sound: true, theme: 'auto' };
 export const STORAGE_KEY = 'hakodraw.settings.v1';
 const integer = (n: unknown, min: number, max: number, fallback: number) =>
   typeof n === 'number' && Number.isInteger(n) && n >= min && n <= max ? n : fallback;
@@ -23,6 +22,7 @@ export function parseSettings(value: unknown): Settings {
     axis: v.axis === 'X' || v.axis === 'Z' ? v.axis : 'Y',
     grid: v.grid === 0 || v.grid === 2 || v.grid === 3 ? v.grid : 4,
     localAxes: typeof v.localAxes === 'boolean' ? v.localAxes : true,
+    sound: typeof v.sound === 'boolean' ? v.sound : true,
     theme: v.theme === 'light' || v.theme === 'dark' ? v.theme : 'auto',
   };
 }

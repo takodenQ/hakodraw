@@ -1,0 +1,162 @@
+/*
+ * ライト（朝のアトリエ）とダーク（夜の作業机）を、より奥行きのある見た目にするためのスタイル。
+ * 既存の配色トークン（design.css）を土台に、背景のオーロラ、ガラスのカード、光る縁、Rare UI 用の部品トークンを足す。
+ * 練習中の3Dビューと描画キャンバスには装飾を重ねない（design-system.md の方針）。
+ */
+@property --beam { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+:root {
+  --aurora-1: rgba(255, 178, 112, .42);
+  --aurora-2: rgba(132, 200, 190, .30);
+  --aurora-3: rgba(255, 216, 150, .34);
+  --cta-bg: linear-gradient(180deg, #ffe0bd 0%, var(--accent) 48%, #e2914f 100%);
+  --cta-shadow: 0 10px 24px -8px color-mix(in srgb, var(--accent) 85%, #a24d16), inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 -2px 0 rgba(120, 60, 15, .12);
+  --cta-shadow-hover: 0 16px 32px -8px color-mix(in srgb, var(--accent) 90%, #a24d16), inset 0 1px 0 rgba(255, 255, 255, .8), inset 0 -2px 0 rgba(120, 60, 15, .12);
+  --tabs-bg: color-mix(in srgb, var(--surface) 58%, transparent);
+  --tab-active-ink: var(--button-ink);
+  --tab-active-shadow: 0 8px 18px -6px color-mix(in srgb, var(--accent) 90%, #a24d16), inset 0 1px 0 rgba(255, 255, 255, .7);
+  --tab-hover-bg: rgba(120, 80, 45, .07);
+  --tip-bg: #3e342d;
+  --tip-ink: #fff8ef;
+  --card-hi: rgba(255, 255, 255, .85);
+  --beam-a: color-mix(in srgb, var(--accent) 90%, #fff);
+  --beam-b: #fff;
+}
+:root[data-theme=dark] {
+  --aurora-1: rgba(72, 196, 164, .22);
+  --aurora-2: rgba(108, 118, 255, .20);
+  --aurora-3: rgba(196, 104, 255, .12);
+  --cta-bg: linear-gradient(180deg, #d4f3e5 0%, var(--accent) 50%, #6aad96 100%);
+  --cta-shadow: 0 0 26px -4px color-mix(in srgb, var(--accent) 60%, transparent), 0 10px 22px -10px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -2px 0 rgba(10, 60, 45, .18);
+  --cta-shadow-hover: 0 0 36px -2px color-mix(in srgb, var(--accent) 75%, transparent), 0 14px 26px -10px rgba(0, 0, 0, .75), inset 0 1px 0 rgba(255, 255, 255, .65), inset 0 -2px 0 rgba(10, 60, 45, .18);
+  --tabs-bg: rgba(18, 26, 27, .58);
+  --tab-active-shadow: 0 0 22px -2px color-mix(in srgb, var(--accent) 65%, transparent), inset 0 1px 0 rgba(255, 255, 255, .5);
+  --tab-hover-bg: rgba(255, 255, 255, .07);
+  --tip-bg: #e9f3ee;
+  --tip-ink: #10241d;
+  --card-hi: rgba(255, 255, 255, .14);
+  --beam-a: var(--accent);
+  --beam-b: #e8fff5;
+}
+
+/* ---- 背景：ゆっくり動くオーロラ（ダークは星明かりも） ---- */
+body::after {
+  content: ""; position: fixed; inset: -25%; z-index: -1; pointer-events: none; filter: blur(34px);
+  background:
+    radial-gradient(38% 34% at 18% 14%, var(--aurora-1), transparent 70%),
+    radial-gradient(34% 38% at 86% 22%, var(--aurora-2), transparent 70%),
+    radial-gradient(44% 38% at 62% 92%, var(--aurora-3), transparent 70%);
+  animation: aurora-drift 46s ease-in-out infinite alternate;
+}
+@keyframes aurora-drift { from { transform: translate3d(-3%, -2%, 0) scale(1); } to { transform: translate3d(3%, 3%, 0) scale(1.12); } }
+:root[data-theme=dark] body { background: radial-gradient(120% 90% at 50% 0, #14201f 0%, #0b1112 55%, #080d0e 100%); }
+:root[data-theme=dark] body::before {
+  opacity: .55; mask-image: linear-gradient(to bottom, black, transparent 85%);
+  background-image: radial-gradient(rgba(255, 255, 255, .55) 1px, transparent 1.3px), radial-gradient(rgba(190, 255, 235, .4) 1px, transparent 1.3px);
+  background-size: 97px 97px, 151px 151px; background-position: 0 0, 43px 61px;
+}
+
+/* ---- 外枠・カード：縁がほのかに光るガラス ---- */
+.app {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--surface) 88%, transparent), color-mix(in srgb, var(--paper) 96%, transparent)) padding-box,
+    linear-gradient(140deg, var(--card-hi), color-mix(in srgb, var(--accent) 50%, transparent) 42%, var(--card-hi) 78%, transparent) border-box;
+  box-shadow: 0 34px 90px -30px color-mix(in srgb, var(--accent) 42%, transparent), 0 10px 30px -12px var(--shadow), inset 0 1px 0 var(--glass-edge);
+}
+:root[data-theme=dark] .app {
+  background:
+    linear-gradient(165deg, rgba(27, 37, 38, .86), rgba(15, 22, 23, .92)) padding-box,
+    linear-gradient(140deg, rgba(255, 255, 255, .22), color-mix(in srgb, var(--accent) 45%, transparent) 40%, rgba(255, 255, 255, .06) 75%, transparent) border-box;
+  box-shadow: 0 40px 100px -30px rgba(0, 0, 0, .8), 0 0 60px -20px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255, 255, 255, .1);
+}
+.home-card {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 86%, transparent), color-mix(in srgb, var(--surface) 60%, transparent));
+  box-shadow: inset 0 1px 0 var(--card-hi), 0 12px 30px -20px var(--shadow);
+  transition: transform .25s var(--ease-out), box-shadow .25s ease, border-color .25s ease;
+}
+:root[data-theme=dark] .home-card { background: linear-gradient(180deg, rgba(38, 50, 51, .62), rgba(22, 31, 32, .55)); }
+@media (hover: hover) and (pointer: fine) {
+  .home-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); box-shadow: inset 0 1px 0 var(--card-hi), 0 22px 44px -20px var(--shadow), 0 0 32px -12px color-mix(in srgb, var(--accent) 60%, transparent); }
+}
+.course-banner, .new-achievements { box-shadow: inset 0 1px 0 var(--card-hi), 0 12px 28px -18px color-mix(in srgb, var(--accent) 70%, transparent); }
+
+/* 「今日のおすすめ」：縁を光がゆっくり周回する */
+.today {
+  border: 1px solid transparent; animation: beam-spin 7s linear infinite;
+  background:
+    linear-gradient(145deg, var(--accent-soft), transparent 70%) padding-box,
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    conic-gradient(from var(--beam), transparent 0 58%, var(--beam-a) 80%, var(--beam-b) 90%, transparent 100%) border-box;
+  box-shadow: 0 18px 44px -24px color-mix(in srgb, var(--accent) 80%, transparent), inset 0 1px 0 var(--card-hi);
+}
+:root[data-theme=dark] .today { background:
+    linear-gradient(145deg, var(--accent-soft), transparent 70%) padding-box,
+    linear-gradient(#182221, #141c1c) padding-box,
+    conic-gradient(from var(--beam), transparent 0 58%, var(--beam-a) 80%, var(--beam-b) 90%, transparent 100%) border-box; }
+@keyframes beam-spin { to { --beam: 360deg; } }
+
+/* ---- ボタン・タブ・入力 ---- */
+.rare-tabs { border: 1px solid var(--line); background: var(--tabs-bg); box-shadow: inset 0 1px 0 var(--card-hi), 0 14px 30px -18px var(--shadow); }
+.rare-tab-pill { background: var(--cta-bg); box-shadow: var(--tab-active-shadow); }
+.rare-cta, .rare-cta:hover:not(:disabled), .rare-cta:active:not(:disabled) { border: 1px solid rgba(255, 255, 255, .45); background: var(--cta-bg); }
+.rare-cta { box-shadow: var(--cta-shadow); }
+.rare-cta.rare-cta:hover:not(:disabled) { box-shadow: var(--cta-shadow-hover); }
+.rare-cta:disabled { box-shadow: none; }
+:root[data-theme=dark] .rare-cta { border-color: rgba(255, 255, 255, .28); }
+.glass-shimmer-sweep {
+  left: -60%; background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, .6) 50%, rgba(255, 255, 255, 0) 70%, transparent 100%);
+  animation: glass-shimmer 4.6s ease-in-out infinite;
+}
+@keyframes glass-shimmer { 0%, 55% { transform: translateX(0) skewX(-20deg); } 100% { transform: translateX(420%) skewX(-20deg); } }
+
+:root[data-theme=dark] .primary { box-shadow: 0 0 22px -6px color-mix(in srgb, var(--accent) 60%, transparent), inset 0 1px 0 rgba(255, 255, 255, .4); }
+input:focus-visible, select:focus-visible { box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 24%, transparent); }
+.theme-toggle { border-radius: 50%; background: var(--track); transition: transform .4s var(--ease-out), box-shadow .3s ease; }
+.theme-toggle svg { transition: transform .5s var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .theme-toggle:hover:not(:disabled) { background: var(--accent-soft); box-shadow: 0 0 22px -4px color-mix(in srgb, var(--accent) 70%, transparent); }
+  .theme-toggle:hover svg { transform: rotate(28deg) scale(1.12); }
+}
+:root[data-theme=dark] .model-view { box-shadow: 0 0 0 1px var(--line-strong), 0 24px 56px -24px rgba(0, 0, 0, .7), 0 0 44px -14px color-mix(in srgb, var(--accent) 30%, transparent); }
+:root[data-theme=dark] h1 { text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent); }
+
+/* ---- 進み具合・カレンダー ---- */
+.goal-bar { box-shadow: inset 0 1px 3px rgba(40, 28, 20, .16); }
+.goal-bar > div, .time-track > div { background: linear-gradient(90deg, color-mix(in srgb, var(--bar) 70%, #fff), var(--bar)); box-shadow: 0 0 14px -1px color-mix(in srgb, var(--bar) 70%, transparent); }
+.calendar-day[data-practiced=true] { background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 70%, #fff), var(--accent)); box-shadow: 0 5px 12px -4px color-mix(in srgb, var(--accent) 80%, transparent); }
+.calendar-day[data-today=true] { animation: today-ring 2.6s ease-in-out infinite; }
+@keyframes today-ring { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--focus) 40%, transparent); } 50% { box-shadow: 0 0 0 5px transparent; } }
+.course li[data-next=true] { box-shadow: 0 0 0 1px var(--focus), 0 10px 24px -14px color-mix(in srgb, var(--accent) 80%, transparent); }
+.stat-tiles div { background: color-mix(in srgb, var(--surface) 70%, transparent); box-shadow: inset 0 1px 0 var(--card-hi); }
+
+/* ---- メダル：ランクごとの光、ホバーのきらめき、獲得直後のふわふわ ---- */
+.medal-tile { overflow: hidden; transition: transform .25s var(--ease-out), background-color .25s ease, border-color .25s ease; }
+.medal-tile[data-earned=true] { background: radial-gradient(72% 58% at 50% 34%, var(--tier-glow, transparent), transparent 74%); }
+.medal-tile[data-tier=bronze] { --tier-glow: rgba(205, 127, 50, .22); }
+.medal-tile[data-tier=silver] { --tier-glow: rgba(160, 174, 192, .30); }
+.medal-tile[data-tier=gold] { --tier-glow: rgba(255, 196, 50, .32); }
+.medal-tile[data-tier=platinum] { --tier-glow: rgba(96, 200, 255, .30); }
+.medal-tile[data-tier=legend] { --tier-glow: rgba(177, 132, 255, .34); }
+.medal-tile[aria-pressed=true] { background-color: var(--accent-soft, var(--track)); }
+.medal-tile::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .55) 50%, transparent 65%); transform: translateX(-100%); }
+@media (hover: hover) and (pointer: fine) {
+  .medal-tile[data-earned=true]:hover { transform: translateY(-2px); }
+  .medal-tile[data-earned=true]:hover::after { animation: medal-shine .9s ease; }
+}
+@keyframes medal-shine { 0% { opacity: 1; transform: translateX(-100%); } 100% { opacity: 1; transform: translateX(100%); } }
+.medal-tile[data-new=true] .medal { animation: medal-bob 2.4s ease-in-out infinite; }
+@keyframes medal-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.medal[data-tier=legend][data-earned=true] { animation: legend-glow 3.4s ease-in-out infinite; }
+@keyframes legend-glow { 0%, 100% { filter: drop-shadow(0 3px 7px rgba(177, 132, 255, .6)) hue-rotate(0deg); } 50% { filter: drop-shadow(0 3px 9px rgba(90, 184, 255, .65)) hue-rotate(35deg); } }
+:root[data-theme=dark] .medal[data-earned=true] { filter: drop-shadow(0 0 9px rgba(255, 255, 255, .14)) drop-shadow(0 4px 6px rgba(0, 0, 0, .55)); }
+.detail-sheet { background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+
+/* 配色の切り替えは、対応ブラウザでなめらかに移り変わる */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .5s; animation-timing-function: ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  body::after, .today, .glass-shimmer-sweep, .calendar-day[data-today=true], .medal-tile[data-new=true] .medal, .medal[data-tier=legend][data-earned=true] { animation: none !important; }
+  .medal-tile:hover::after { animation: none !important; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Shape } from '../shapes';
 import { BODY_PARTS, bodyGeometry } from './mannequin';
-import { connectionById, type GuidePreset } from '../connections';
+import { connectionById, FIGURE_PARTS, type GuidePreset } from '../connections';
 
 /** Shared display passes keep hidden edges readable without triangle wireframes. */
 export function createTarget(shape: Shape, connectionId?: string) {
@@ -34,6 +34,15 @@ export function createTarget(shape: Shape, connectionId?: string) {
       edge.renderOrder = hidden ? 2 : 3;part.add(edge);resources.push(material);(hidden ? hiddenLines : lines).push(material);
     }
     return part;
+  }
+  /** Real-scale (metre) bodies are normalised to the same on-screen size as the other targets. */
+  function fitToView() {
+    root.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(root);
+    const center = bounds.getCenter(new THREE.Vector3());
+    const size = bounds.getSize(new THREE.Vector3());
+    const factor = 2.5 / Math.max(size.x, size.y, size.z);
+    root.scale.setScalar(factor);root.position.copy(center.multiplyScalar(-factor));
   }
   if (connectionId) {
     const nodes = new Map<string, THREE.Group>();
@@ -73,19 +82,14 @@ export function createTarget(shape: Shape, connectionId?: string) {
         markers.push(material);
       }
     }
-    const bounds = new THREE.Box3().setFromObject(root);
-    const center = bounds.getCenter(new THREE.Vector3());
-    const size = bounds.getSize(new THREE.Vector3());
-    const factor = 2.5 / Math.max(size.x, size.y, size.z);
-    root.scale.setScalar(factor);root.position.copy(center.multiplyScalar(-factor));
+    fitToView();
   } else if (shape === 'mannequin') {
     for(const p of BODY_PARTS) addPart(p.name,bodyGeometry(p.rings),p.position,p.rotation,false,false,!!p.joint);
     root.scale.setScalar(.40);root.position.y = -7.5 / 2 * .40;
   } else if (shape === 'figure') {
-    // Approximation of the user's reference: three separated blocks, opposing tilts.
-    addPart('head', new THREE.BoxGeometry(.48, .58, .46), [-.04, 1.02, .02], [-5, -10, 3]);
-    addPart('thorax', new THREE.BoxGeometry(.82, .85, .5), [0, .19, 0], [10, 18, -16]);
-    addPart('pelvis', new THREE.BoxGeometry(.65, .55, .46), [.04, -.7, .03], [-8, -14, 13]);
+    // Three separated blocks with opposing tilts, sized for a 180cm adult male.
+    for (const p of FIGURE_PARTS) addPart(p.id, new THREE.BoxGeometry(...p.size), p.position, p.rotation);
+    fitToView();
   } else {
     const planar = shape === 'square' || shape === 'circle';
     const geometry = shape === 'circle' ? new THREE.CircleGeometry(1, 128) : shape === 'cube' ? new THREE.BoxGeometry(2, 2, 2) : shape === 'cuboid' ? new THREE.BoxGeometry(1.4, 2.2, 1) : new THREE.PlaneGeometry(2, 2);
