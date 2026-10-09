@@ -1,4 +1,6 @@
 import { PerspectiveCamera, Vector3 } from 'three';
+import { mulberry32 } from './random';
+export { randomSeed } from './random';
 export type Point = [number, number];
 export type Edge = { a: Point; b: Point; axis: number; visible?: boolean };
 export function extendLine(a: Point, b: Point): [Point, Point] | null {
@@ -8,8 +10,6 @@ export function extendLine(a: Point, b: Point): [Point, Point] | null {
  const unique=hits.filter((p,i)=>!hits.slice(0,i).some(q=>Math.hypot(p[0]-q[0],p[1]-q[1])<1e-5));
  return unique.length>=2?[unique[0],unique[1]]:null;
 }
-const mulberry32=(seed:number)=>()=>{seed=(seed+0x6D2B79F5)|0;let t=Math.imul(seed^(seed>>>15),1|seed);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};
-export const randomSeed=()=>Math.floor(Math.random()*2**31);
 /** 立方体の向き（Y回転）と目線の高さ。同じ seed・問題番号なら常に同じ。前の問題から必ず60°以上回す。 */
 export function perspectivePose(index:number,seed:number){
  const random=mulberry32(seed);

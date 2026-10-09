@@ -1,12 +1,15 @@
 import * as THREE from 'three';
-import { createTarget } from './target';
+import { createTarget, type JointRotations } from './target';
 import { shapeLabel, type Shape } from '../shapes';
 import type { Axis } from '../settings';
-import type { Phase } from '../session';
+import { TURN_MS, type Phase } from '../session';
 import { connectionById, type GuidePreset } from '../connections';
+import { PREVIEW_ORIENTATION, type BodyPose, type JointId } from '../body';
 
 export interface ViewState {
   connectionId?: string; guidePreset?: GuidePreset;
+  /** 接続練習の問題のポーズ（関節の曲げと全体の向き）。poseKey が変わると、表示中のポーズから移り変わる。 */
+  pose?: BodyPose; poseKey?: string;
   opacity: number; brightness: number; positionX: number; positionY: number; rotationX: number; rotationY: number; rotationZ: number; scale: number; focalLength: number; shape: Shape; axis: Axis; angle: number; phase: Phase; showAxes: boolean; dark: boolean;
   highlightAxis?: Axis | null; completedAt: number; reducedMotion: boolean; axisPulseAt: number;
 }
@@ -52,16 +55,47 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
   const initial = new THREE.Quaternion();
   const base = new THREE.Quaternion();
   const spin = new THREE.Quaternion();
+  // 接続練習：表示中のポーズと、移り変わりの始点・終点
+  const preview = new THREE.Quaternion(...PREVIEW_ORIENTATION);
+  const shown = { orientation: preview.clone(), joints: new Map<JointId, THREE.Quaternion>() };
+  const from = { orientation: new THREE.Quaternion(), joints: new Map<JointId, THREE.Quaternion>() };
+  const to = { orientation: new THREE.Quaternion(), joints: new Map<JointId, THREE.Quaternion>() };
+  const rotations: JointRotations = {};
+  let poseKey = '', poseStarted = 0;
+  /** 問題が変わったら、いま見えているポーズから新しいポーズへ TURN_MS かけて移る（初回と対象の切り替え時は即時）。 */
+  function updatePose(state: ViewState, now: number, instant: boolean) {
+    const key = `${state.connectionId}:${state.poseKey ?? 'rest'}`;
+    if (key !== poseKey) {
+      poseKey = key;poseStarted = now;
+      const pose = state.pose;
+      to.orientation.set(...(pose?.orientation ?? PREVIEW_ORIENTATION));
+      to.joints.clear();
+      for (const [id, q] of Object.entries(pose?.joints ?? {}) as [JointId, [number, number, number, number]][]) to.joints.set(id, new THREE.Quaternion(...q));
+      from.orientation.copy(instant ? to.orientation : shown.orientation);
+      from.joints.clear();
+      for (const id of target.jointIds()) from.joints.set(id, (instant ? to.joints.get(id) : shown.joints.get(id))?.clone() ?? new THREE.Quaternion());
+    }
+    const t = state.reducedMotion ? 1 : Math.min(1, Math.max(0, (now - poseStarted) / TURN_MS)), e = t * t * (3 - 2 * t);
+    shown.orientation.slerpQuaternions(from.orientation, to.orientation, e);
+    for (const id of target.jointIds()) {
+      const q = shown.joints.get(id) ?? new THREE.Quaternion();
+      q.slerpQuaternions(from.joints.get(id) ?? new THREE.Quaternion(), to.joints.get(id) ?? new THREE.Quaternion(), e);
+      shown.joints.set(id, q);rotations[id] = q;
+    }
+    target.setPose(rotations);
+  }
   return {
     render(state: ViewState, now: number) {
       camera.setFocalLength(state.focalLength);
       camera.position.set(0, 0, 5.5 * state.focalLength / 50);camera.lookAt(0, 0, 0);camera.updateMatrixWorld();
       base.setFromEuler(new THREE.Euler(...[state.rotationX, state.rotationY, state.rotationZ].map(THREE.MathUtils.degToRad) as [number, number, number], 'XYZ'));
       pivot.scale.setScalar(state.scale / 100);
+      let rebuilt = false;
       if (currentShape !== state.shape || currentConnection !== state.connectionId) {
         pivot.remove(target.root);target.dispose();
         currentShape = state.shape;currentConnection = state.connectionId;target = createTarget(currentShape, currentConnection);pivot.add(target.root);
-        lastDark = undefined;
+        lastDark = undefined;rebuilt = true;
+        for (const key of Object.keys(rotations)) delete rotations[key as JointId];
       }
       renderer.domElement.setAttribute('aria-label', 'Three.jsで描画した' + (state.connectionId ? connectionById(state.connectionId).label : shapeLabel(state.shape)));
       target.setGuides(state.guidePreset ?? 'standard', state.phase === 'complete');
@@ -72,14 +106,21 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
         arrows.forEach(({ arrow }, i) => arrow.setColor(new THREE.Color(colors[i])));
       }
       target.setAppearance(state.dark, state.opacity, state.brightness);
-      initial.setFromAxisAngle(directions[state.axis], state.angle);
-      pivot.quaternion.copy(initial).multiply(base);pivot.position.set(state.positionX / 100 * 1.925, state.positionY / 100 * 1.925, 0);
+      // 接続練習は問題ごとのランダムな向き、それ以外は初期姿勢に選んだ軸の回転を重ねる。
+      if (state.connectionId) {
+        updatePose(state, now, rebuilt || !poseKey.startsWith(`${state.connectionId}:`));
+        pivot.quaternion.copy(shown.orientation);
+      } else {
+        initial.setFromAxisAngle(directions[state.axis], state.angle);
+        pivot.quaternion.copy(initial).multiply(base);
+      }
+      pivot.position.set(state.positionX / 100 * 1.925, state.positionY / 100 * 1.925, 0);
       let celebration = 0;
       if (state.phase === 'complete') {
         celebration = state.reducedMotion ? 1 : Math.min(1, Math.max(0, (now - state.completedAt) / 2000));
         const settle = Math.min(1, celebration / .65);
         const ease = 1 - (1 - settle) ** 3;
-        pivot.quaternion.slerp(base, ease);
+        pivot.quaternion.slerp(state.connectionId ? preview : base, ease);
         spin.setFromAxisAngle(directions.Z, 2 * Math.PI * ease + .1 * Math.sin(Math.PI * Math.max(0, (celebration - .65) / .35)));
         pivot.quaternion.premultiply(spin);
         pivot.position.y += .32 * ease + .28 * Math.sin(Math.PI * settle);

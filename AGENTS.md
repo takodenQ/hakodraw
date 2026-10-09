@@ -38,7 +38,10 @@ HakoDrawは、立体をさまざまな方向から描く練習を行うブラウ
 - `src/useSessionAids.ts` / `src/sound.ts`：練習中の画面消灯防止、切り替え音、キー操作
 - `src/session.ts`：時間制限付きセッションの状態遷移
 - `src/settings.ts`：設定、検証、ブラウザ保存
-- `src/connections.ts`：接続練習の項目とパーツ配置
+- `src/connections.ts`：接続練習の項目（名前・説明・以前のIDの読み替え）と、「人体」モードの3ブロック
+- `src/body.ts`：三面図から起こした人体モデル（パーツの形、関節のピボットと可動域、練習の組み合わせ、ランダムなポーズ）
+- `src/scene/bodyMesh.ts`：人体モデルの形（台形の箱・球・押し出し）から Three.js の形状と輪郭線を作る
+- `src/random.ts`：種から決まる乱数（問題の再現に使う）
 - `src/scene/target.ts`：練習対象のThree.jsオブジェクト生成
 - `src/scene/renderer.ts`：カメラ、回転、描画
 - `src/scene/mannequin.ts`：全身素体のパーツ定義
