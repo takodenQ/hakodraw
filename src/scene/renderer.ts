@@ -4,10 +4,10 @@ import { shapeLabel, type Shape } from '../shapes';
 import type { Axis } from '../settings';
 import { TURN_MS, type Phase } from '../session';
 import { connectionById, type GuidePreset } from '../connections';
-import { PREVIEW_ORIENTATION, type BodyPose, type JointId } from '../body';
+import { PREVIEW_ORIENTATION, bodyTypeLabel, type BodyPose, type BodyType, type JointId } from '../body';
 
 export interface ViewState {
-  connectionId?: string; guidePreset?: GuidePreset;
+  connectionId?: string; guidePreset?: GuidePreset; bodyType?: BodyType;
   /** 接続練習の問題のポーズ（関節の曲げと全体の向き）。poseKey が変わると、表示中のポーズから移り変わる。 */
   pose?: BodyPose; poseKey?: string;
   opacity: number; brightness: number; positionX: number; positionY: number; rotationX: number; rotationY: number; rotationZ: number; scale: number; focalLength: number; shape: Shape; axis: Axis; angle: number; phase: Phase; showAxes: boolean; dark: boolean;
@@ -33,7 +33,7 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
   camera.position.set(0, 0, 5.5);
   camera.lookAt(0, 0, 0);
   let currentShape: Shape = 'square';
-  let currentConnection: string | undefined;
+  let currentConnection: string | undefined, currentBody: BodyType = 'male';
   let target = createTarget(currentShape);
   const pivot = new THREE.Group();
   pivot.add(target.root);scene.add(pivot);
@@ -64,7 +64,7 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
   let poseKey = '', poseStarted = 0;
   /** 問題が変わったら、いま見えているポーズから新しいポーズへ TURN_MS かけて移る（初回と対象の切り替え時は即時）。 */
   function updatePose(state: ViewState, now: number, instant: boolean) {
-    const key = `${state.connectionId}:${state.poseKey ?? 'rest'}`;
+    const key = `${state.connectionId}:${state.bodyType ?? 'male'}:${state.poseKey ?? 'rest'}`;
     if (key !== poseKey) {
       poseKey = key;poseStarted = now;
       const pose = state.pose;
@@ -91,13 +91,14 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
       base.setFromEuler(new THREE.Euler(...[state.rotationX, state.rotationY, state.rotationZ].map(THREE.MathUtils.degToRad) as [number, number, number], 'XYZ'));
       pivot.scale.setScalar(state.scale / 100);
       let rebuilt = false;
-      if (currentShape !== state.shape || currentConnection !== state.connectionId) {
+      const body = state.bodyType ?? 'male';
+      if (currentShape !== state.shape || currentConnection !== state.connectionId || (state.connectionId && currentBody !== body)) {
         pivot.remove(target.root);target.dispose();
-        currentShape = state.shape;currentConnection = state.connectionId;target = createTarget(currentShape, currentConnection);pivot.add(target.root);
+        currentShape = state.shape;currentConnection = state.connectionId;currentBody = body;target = createTarget(currentShape, currentConnection, body);pivot.add(target.root);
         lastDark = undefined;rebuilt = true;
         for (const key of Object.keys(rotations)) delete rotations[key as JointId];
       }
-      renderer.domElement.setAttribute('aria-label', 'Three.jsで描画した' + (state.connectionId ? connectionById(state.connectionId).label : shapeLabel(state.shape)));
+      renderer.domElement.setAttribute('aria-label', 'Three.jsで描画した' + (state.connectionId ? `${connectionById(state.connectionId).label}（${bodyTypeLabel(body)}）` : shapeLabel(state.shape)));
       target.setGuides(state.guidePreset ?? 'standard', state.phase === 'complete');
       if (lastDark !== state.dark) {
         lastDark = state.dark;
@@ -108,7 +109,7 @@ export function createScene(host: HTMLDivElement, labels: (positions: LabelPosit
       target.setAppearance(state.dark, state.opacity, state.brightness);
       // 接続練習は問題ごとのランダムな向き、それ以外は初期姿勢に選んだ軸の回転を重ねる。
       if (state.connectionId) {
-        updatePose(state, now, rebuilt || !poseKey.startsWith(`${state.connectionId}:`));
+        updatePose(state, now, rebuilt || !poseKey.startsWith(`${state.connectionId}:${body}:`));
         pivot.quaternion.copy(shown.orientation);
       } else {
         initial.setFromAxisAngle(directions[state.axis], state.angle);

@@ -1,13 +1,15 @@
 import { test, expect } from '@playwright/test';
-const LABELS = ['頭・首・胸郭', '胸郭・肩・上腕', '上腕・肘・前腕・手', '胸郭・腹部・腰', '腰・太もも', '太もも・膝・ふくらはぎ・足'];
+const LABELS = ['頭・首・胸郭', '胸郭・肩・上腕', '上腕・肘・前腕・手', '胸郭・腹部・腰', '腰・太もも', '太もも・膝・ふくらはぎ・足',
+  '体幹（腰〜頭）', '胸郭・両腕', '腰・両脚', '全身'];
 
 test('connection selection, guides, paused navigation and saved preferences', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: '接続練習', exact: true }).click();
   for (const label of LABELS) {
     await page.getByRole('radio', { name: label, exact: true }).check();
-    await expect(page.getByRole('img', { name: 'Three.jsで描画した' + label })).toBeVisible();
+    await expect(page.getByRole('img', { name: `Three.jsで描画した${label}（男性）` })).toBeVisible();
   }
+  await page.getByRole('radio', { name: '太もも・膝・ふくらはぎ・足', exact: true }).check();
   await page.getByLabel('補助表示', { exact: true }).selectOption('learning');
   await page.getByLabel('問題数', { exact: true }).fill('2');
   await page.getByRole('button', { name: '練習スタート', exact: true }).click();
@@ -52,6 +54,25 @@ test('each question shows a new random pose and view, and going back restores it
   await expect(view).toHaveAttribute('data-pose', /^\d+:0$/);
   expect(await view.getAttribute('data-pose')).not.toBe(first);
   expect(errors).toEqual([]);
+});
+
+test('the male or female model can be chosen and is remembered', async ({ page }) => {
+  await page.goto('/#connection');
+  const view = page.getByTestId('model-view');
+  await expect(page.getByRole('radio', { name: '男性', exact: true })).toBeChecked();
+  await expect(view).toHaveAttribute('data-body', 'male');
+  await page.getByRole('radio', { name: '全身', exact: true }).check();
+  await page.getByRole('radio', { name: '女性', exact: true }).check();
+  await expect(view).toHaveAttribute('data-body', 'female');
+  await expect(page.getByRole('img', { name: 'Three.jsで描画した全身（女性）' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('radio', { name: '女性', exact: true })).toBeChecked();
+  await expect(page.getByRole('radio', { name: '全身', exact: true })).toBeChecked();
+  await page.getByLabel('問題数', { exact: true }).fill('2');
+  await page.getByRole('button', { name: '練習スタート' }).click();
+  await expect(view).toHaveAttribute('data-pose', /^\d+:0$/);
+  // 練習中はモデルを切り替えない（設定と一緒に隠れる）
+  await expect(page.getByRole('radio', { name: '男性', exact: true })).toHaveCount(0);
 });
 
 test('connection layout fits supported viewports', async ({ page }) => {

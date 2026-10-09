@@ -12,6 +12,11 @@ export const CONNECTIONS: { id: string; label: string; hint: string }[] = [
   { id: 'thorax-abdomen-pelvis', label: '胸郭・腹部・腰', hint: '背骨の曲げとひねりで、胸郭と腰の向きがどうずれるかを観察' },
   { id: 'pelvis-thighs', label: '腰・太もも', hint: '腰の下の股関節から、左右の太ももが伸びる方向を観察' },
   { id: 'leg-foot', label: '太もも・膝・ふくらはぎ・足', hint: '膝と足首の曲がりで、すねと足の向きがどう変わるかを観察' },
+  // 部分ごとの練習を、より大きなまとまりで組み合わせる項目
+  { id: 'trunk-head', label: '体幹（腰〜頭）', hint: '腰から頭まで、背骨と首の曲げ・ひねりが積み重なって全体の流れになる様子を観察' },
+  { id: 'thorax-arms', label: '胸郭・両腕', hint: '胸郭を土台に、左右の腕がそれぞれどの向きに伸び、どう重なるかを観察' },
+  { id: 'pelvis-legs', label: '腰・両脚', hint: '腰を土台に、左右の脚の向きと前後の重なりを観察' },
+  { id: 'full-body', label: '全身', hint: 'これまでの組み合わせをすべてつないで、全身のつながりを観察' },
 ];
 /** 以前の項目IDは、近い内容の新しい項目へ読み替える（保存済みの設定のため）。 */
 const LEGACY_IDS: Record<string, string> = {

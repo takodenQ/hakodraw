@@ -50,7 +50,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   ]),
   ...ladder('explore', 'variety', [
     [3, 'bronze', 'いろいろ3種', '3種類の練習をやってみた'], [6, 'silver', 'いろいろ6種', '6種類の練習をやってみた'], [10, 'gold', 'いろいろ10種', '10種類の練習をやってみた'],
-    [13, 'platinum', 'ぜんぶ試した', '回転・接続・パースの全13種類をやってみた'],
+    [13, 'platinum', 'いろいろ13種', '13種類の練習をやってみた'],
+    [17, 'legend', 'ぜんぶ試した', '回転・接続・パースの全17種類をやってみた'],
   ]),
   ...ladder('explore', 'modes', [[3, 'silver', 'どのモードも', '回転練習・接続練習・パース練習をすべてやってみた']]),
   ...ladder('explore', 'bestSession', [
