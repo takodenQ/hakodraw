@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import type { Shape } from '../shapes';
 import { BODY_PARTS, bodyGeometry as mannequinGeometry } from './mannequin';
 import { connectionById, FIGURE_PARTS, type GuidePreset } from '../connections';
-import { BODY_SETS, JOINTS, PARTS, bodyPose, linkPivot, type JointId, type PartId } from '../body';
+import { BODY_SETS, MODELS, PART_LABELS, bodyPose, linkPivot, type BodyType, type JointId, type PartId } from '../body';
 import { bodyGeometry, rectCorners } from './bodyMesh';
 
 export type JointRotations = Partial<Record<JointId, THREE.Quaternion>>;
 
 /** Shared display passes keep hidden edges readable without triangle wireframes. */
-export function createTarget(shape: Shape, connectionId?: string) {
+export function createTarget(shape: Shape, connectionId?: string, bodyType: BodyType = 'male') {
   const root = new THREE.Group(); root.name = shape;
   const resources: { dispose(): void }[] = [];
   const faces: { material: THREE.MeshBasicMaterial | THREE.MeshLambertMaterial; back: boolean; joint: boolean }[] = [];
@@ -73,21 +73,21 @@ export function createTarget(shape: Shape, connectionId?: string) {
    * setPose で関節を回すと子パーツも一緒に動く。どんなポーズ・向きでも画面に収まる大きさにそろえる。
    */
   function buildBody(setId: string) {
-    const links = BODY_SETS[setId];
+    const links = BODY_SETS[setId], model = MODELS[bodyType];
     const groups = new Map<PartId, THREE.Group>(), pivots = new Map<PartId, THREE.Vector3>();
     // 大きさを決めるための代表点（角柱の角、球は中心と半径）
     const probes: { group: THREE.Group; point: THREE.Vector3; pad: number }[] = [];
     for (const link of links) {
-      const pivot = new THREE.Vector3(...linkPivot(link)), parentPivot = link.parent ? pivots.get(link.parent)! : new THREE.Vector3();
-      const group = new THREE.Group();group.name = PARTS[link.part].label;
+      const pivot = new THREE.Vector3(...linkPivot(link, model)), parentPivot = link.parent ? pivots.get(link.parent)! : new THREE.Vector3();
+      const group = new THREE.Group();group.name = PART_LABELS[link.part];
       group.position.copy(pivot).sub(parentPivot);
       (link.parent ? groups.get(link.parent)! : root).add(group);
       groups.set(link.part, group);pivots.set(link.part, pivot);
       if (link.joint) jointGroups.push([link.joint, group]);
-      for (const s of PARTS[link.part].shapes) {
+      for (const s of model.parts[link.part]) {
         const geometry = bodyGeometry(s);
         geometry.translate(-pivot.x, -pivot.y, -pivot.z);geometry.userData.contours.translate(-pivot.x, -pivot.y, -pivot.z);
-        group.add(createMesh(PARTS[link.part].label, geometry, false, false, s.kind === 'ball'));
+        group.add(createMesh(PART_LABELS[link.part], geometry, false, false, s.kind === 'ball'));
         if (s.kind === 'ball') probes.push({ group, point: new THREE.Vector3(...s.c).sub(pivot), pad: s.r });
         else {
           const positions = geometry.getAttribute('position');
@@ -100,7 +100,7 @@ export function createTarget(shape: Shape, connectionId?: string) {
     let radius = 0;
     const world = new THREE.Vector3(), sampleRotations: JointRotations = {};
     for (let index = -1; index < 240; index++) {
-      const pose = index < 0 ? null : bodyPose(setId, 0x5eed, index);
+      const pose = index < 0 ? null : bodyPose(setId, 0x5eed, index, bodyType);
       for (const [id] of jointGroups) sampleRotations[id] = new THREE.Quaternion(...(pose?.joints[id] ?? [0, 0, 0, 1]));
       for (const [id, group] of jointGroups) group.quaternion.copy(sampleRotations[id]!);
       root.updateMatrixWorld(true);
@@ -122,7 +122,7 @@ export function createTarget(shape: Shape, connectionId?: string) {
       const group = groups.get(link.part)!, pivot = pivots.get(link.part)!;
       const local = (v: readonly number[]) => new THREE.Vector3(v[0], v[1], v[2]).sub(pivot);
       // 中心線（標準）、左右の線と正面の矢印（学習）。手のように複数の形があるパーツは、最初の形（手のひら）だけに付ける。
-      const s = PARTS[link.part].shapes[0];
+      const s = model.parts[link.part][0];
       if (s.kind === 'loft') {
         const bottom = local(s.bottom.c), top = local(s.top.c), mid = bottom.clone().lerp(top, .5);
         guideLine(group, [bottom, top], standardGuides);
@@ -133,12 +133,12 @@ export function createTarget(shape: Shape, connectionId?: string) {
         guideLine(group, [leftSide, right], learningGuides);
         guideLine(group, [mid, tip, tip.clone().add(new THREE.Vector3(.06 * unit, 0, -.08 * unit))], learningGuides);
       }
-      if (!link.parent) continue;
-      // 接続点（標準）と、関節の軸（学習）
+      // 接続点（標準）と、関節の軸（学習）。固定の関節球は、その先のパーツの関節と同じ点なので印を重ねない。
+      if (!link.parent || (!link.joint && s.kind === 'ball')) continue;
       const material = new THREE.MeshBasicMaterial({ depthTest: false, depthWrite: false });
       const marker = new THREE.Mesh(markerGeometry, material);marker.renderOrder = 6;group.add(marker);resources.push(material);markers.push(material);standardGuides.push(marker);
       if (link.joint) {
-        const joint = JOINTS[link.joint];
+        const joint = model.joints[link.joint];
         guideLine(group, [new THREE.Vector3(), new THREE.Vector3(...joint.twistAxis).multiplyScalar(.3 * unit)], learningGuides);
         if (joint.dofs.length <= 2 && joint.dofs[0].axis === 'x') guideLine(group, [new THREE.Vector3(-.18 * unit, 0, 0), new THREE.Vector3(.18 * unit, 0, 0)], learningGuides);
       }
