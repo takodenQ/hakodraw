@@ -4,7 +4,7 @@ export type Axis = 'X' | 'Y' | 'Z';
 export type Grid = 0 | 2 | 3 | 4;
 export type Theme = 'auto' | 'light' | 'dark';
 export interface Settings { connectionId?: string; guidePreset?: GuidePreset; opacity: number; brightness: number; positionX: number; positionY: number; rotationX: number; rotationY: number; rotationZ: number; scale: number; focalLength: number; shape: Shape; count: number; seconds: number; axis: Axis; grid: Grid; localAxes: boolean; sound: boolean; theme: Theme }
-export const DEFAULTS: Settings = { connectionId: 'head-chest', guidePreset: 'standard', opacity: 65, brightness: 75, positionX: 0, positionY: 0, rotationX: 0, rotationY: 0, rotationZ: 0, scale: 100, focalLength: 50, shape: 'square', count: 12, seconds: 30, axis: 'Y', grid: 4, localAxes: true, sound: true, theme: 'auto' };
+export const DEFAULTS: Settings = { connectionId: 'head-neck-thorax', guidePreset: 'standard', opacity: 65, brightness: 75, positionX: 0, positionY: 0, rotationX: 0, rotationY: 0, rotationZ: 0, scale: 100, focalLength: 50, shape: 'square', count: 12, seconds: 30, axis: 'Y', grid: 4, localAxes: true, sound: true, theme: 'auto' };
 export const STORAGE_KEY = 'hakodraw.settings.v1';
 const integer = (n: unknown, min: number, max: number, fallback: number) =>
   typeof n === 'number' && Number.isInteger(n) && n >= min && n <= max ? n : fallback;

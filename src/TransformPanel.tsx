@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { Settings, Axis } from './settings';
-export default function TransformPanel({ settings: s, setup, update, onAxis }: { settings: Settings; setup: boolean; update: (p: Partial<Settings>) => void; onAxis: (axis: Axis) => void }) {
+/** canRotate=false（接続練習：向きは問題ごとにランダム）のときは、初期姿勢の回転を出さない。 */
+export default function TransformPanel({ settings: s, setup, canRotate = true, update, onAxis }: { settings: Settings; setup: boolean; canRotate?: boolean; update: (p: Partial<Settings>) => void; onAxis: (axis: Axis) => void }) {
  const [mode,setMode]=useState<'rotate'|'move'|'scale'>('rotate');
  const [axis,setAxis]=useState<Axis>('X');const [fine,setFine]=useState(false);
- const active=!setup&&mode==='rotate'?'move':mode;
+ const rotatable=setup&&canRotate;
+ const active=!rotatable&&mode==='rotate'?'move':mode;
  const key=('rotation'+axis) as 'rotationX'|'rotationY'|'rotationZ';
  const step=fine?1:15, moveStep=fine?1:5, sizeStep=fine?1:10;
  const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
  return <details className="transform-panel view-settings">
   <summary>オブジェクトの調整<ChevronDown size={16} aria-hidden="true" /></summary>
-  <div className="transform-modes" role="group" aria-label="操作の種類">{(['rotate','move','scale'] as const).map((value,i)=><button key={value} disabled={value==='rotate'&&!setup} aria-pressed={active===value} onClick={()=>{setMode(value);if(value==='rotate')onAxis(axis);}}>{['回転','移動','大きさ'][i]}</button>)}</div>
+  <div className="transform-modes" role="group" aria-label="操作の種類">{(['rotate','move','scale'] as const).map((value,i)=><button key={value} disabled={value==='rotate'&&!rotatable} aria-pressed={active===value} onClick={()=>{setMode(value);if(value==='rotate')onAxis(axis);}}>{['回転','移動','大きさ'][i]}</button>)}</div>
   <label className="fine-control"><input type="checkbox" checked={fine} onChange={e=>setFine(e.target.checked)}/>細かく（1{active==='rotate'?'°':'%'}ずつ）</label>
   {active==='rotate'?<>
    <div className="transform-modes" role="group" aria-label="初期回転の軸">{(['X','Y','Z'] as Axis[]).map(a=><button key={a} className={'axis-'+a} aria-pressed={axis===a} onClick={()=>{setAxis(a);onAxis(a);}}>{a}軸</button>)}</div>
